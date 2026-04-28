@@ -111,12 +111,17 @@ def download_media(session: str, msg_id: str, message_keys: dict) -> Optional[st
         print(f"DOWNLOAD_API_ERROR: {data.get('message')}", flush=True)
         return None
 
-    raw = decode_data_uri(data.get("data", ""))
+    try:
+        raw = decode_data_uri(data.get("data", ""))
+    except Exception:
+        print(f"DOWNLOAD_DECODE_ERROR: bad base64 in response", flush=True)
+        return None
     if not raw:
         return None
 
     ext = ext_for_mime(message_keys.get("mimetype", ""))
-    out_dir = os.path.join("media", f"session{session}")
+    safe_session = "".join(c for c in str(session) if c.isalnum())
+    out_dir = os.path.join("media", f"session{safe_session}")
     os.makedirs(out_dir, exist_ok=True)
     safe_id = "".join(c for c in msg_id if c.isalnum() or c in "-_")
     out_path = os.path.join(out_dir, f"{safe_id}.{ext}")

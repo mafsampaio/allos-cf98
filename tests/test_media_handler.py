@@ -98,3 +98,43 @@ def test_download_media_returns_none_on_api_error(fake_config, tmp_workdir):
             },
         )
     assert path is None
+
+
+def test_download_media_handles_malformed_base64(fake_config, tmp_workdir):
+    media_handler = _import()
+    response = '{"error": false, "message": "ok", "data": "data:audio/ogg;base64,not!!valid%%base64"}'
+    fake_proc = MagicMock(stdout=response, stderr="", returncode=0)
+    with patch("media_handler.subprocess.run", return_value=fake_proc):
+        path = media_handler.download_media(
+            session="1",
+            msg_id="X",
+            message_keys={
+                "mediaKey": "x", "directPath": "x", "url": "x",
+                "mimetype": "audio/ogg; codecs=opus", "messageType": "audioMessage",
+            },
+        )
+    assert path is None
+
+
+def test_download_media_sanitises_session(fake_config, tmp_workdir):
+    """Path traversal in session must be neutralised."""
+    media_handler = _import()
+    body = base64.b64encode(b"PAYLOAD").decode()
+    response = '{"error": false, "data": "data:audio/ogg;base64,' + body + '"}'
+    fake_proc = MagicMock(stdout=response, stderr="", returncode=0)
+    with patch("media_handler.subprocess.run", return_value=fake_proc):
+        path = media_handler.download_media(
+            session="../../evil",
+            msg_id="X",
+            message_keys={
+                "mediaKey": "x", "directPath": "x", "url": "x",
+                "mimetype": "audio/ogg; codecs=opus", "messageType": "audioMessage",
+            },
+        )
+    # Must NOT contain `..` or escape media/. Must contain only alphanumerics in session segment.
+    assert path is not None
+    norm = path.replace("\\", "/")
+    assert ".." not in norm
+    assert "evil" in norm  # alphanumerics preserved
+    # File must be inside media/ subtree
+    assert norm.startswith("media/") or "/media/session" in norm
