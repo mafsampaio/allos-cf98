@@ -96,7 +96,8 @@ def main() -> int:
 
     print("")
     print("--- Multimodal (opcional) ---")
-    openai_key = ask("OPENAI_API_KEY (transcricao de audio via Whisper, deixe vazio para pular)",
+    print("  Obtenha sua chave em: https://platform.openai.com/api-keys")
+    openai_key = ask("OPENAI_API_KEY (Whisper - transcricao de audio, deixe vazio para pular)",
                      default="", required=False)
 
     cfg = {

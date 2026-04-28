@@ -4,6 +4,8 @@ from unittest.mock import patch
 
 def test_writes_config_with_openai_key(fake_config, tmp_workdir):
     # delete the seeded config so wizard writes fresh
+    import sys
+    sys.modules.pop("setup_config", None)
     (tmp_workdir / "config.py").unlink()
 
     import setup_config
@@ -26,6 +28,8 @@ def test_writes_config_with_openai_key(fake_config, tmp_workdir):
 
 
 def test_blank_openai_key_allowed(fake_config, tmp_workdir):
+    import sys
+    sys.modules.pop("setup_config", None)
     (tmp_workdir / "config.py").unlink()
     import setup_config
 
