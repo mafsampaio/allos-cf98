@@ -41,6 +41,10 @@ def transcribe_audio(path: str) -> str:
     except Exception as e:
         return f"[audio - erro de rede: {e}]"
 
+    if result.returncode != 0:
+        detail = (result.stderr or "").strip() or f"curl exit {result.returncode}"
+        return f"[audio - erro de rede: {detail}]"
+
     try:
         data = json.loads(result.stdout)
     except Exception:

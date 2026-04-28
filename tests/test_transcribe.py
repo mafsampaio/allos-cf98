@@ -43,3 +43,14 @@ def test_returns_marker_when_file_missing(fake_config):
     transcribe = _import_transcribe(openai_key="sk-test")
     text = transcribe.transcribe_audio("/nonexistent.ogg")
     assert "nao encontrado" in text
+
+
+def test_returns_marker_on_curl_failure(fake_config, tmp_workdir):
+    transcribe = _import_transcribe(openai_key="sk-test")
+    p = tmp_workdir / "a.ogg"
+    p.write_bytes(b"x")
+    proc = MagicMock(stdout="", stderr="curl: (6) Could not resolve host", returncode=6)
+    with patch("transcribe.subprocess.run", return_value=proc):
+        text = transcribe.transcribe_audio(str(p))
+    assert text.startswith("[audio - erro de rede")
+    assert "Could not resolve" in text
