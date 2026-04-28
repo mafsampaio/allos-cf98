@@ -68,6 +68,9 @@ WhatsApp ← megaAPI ← send_message.py ← Claude Code ← monitor.py (Monitor
 | `start.{ps1,sh}` | Sobe webhook + ngrok |
 | `stop.{ps1,sh}` | Para tudo |
 | `CLAUDE_PROMPT.md` | Prompt pronto pra colar no Claude Code |
+| `add_session.py` | Wizard pra adicionar nova instancia megaAPI ao config |
+| `media_handler.py` | Baixa media decriptada via endpoint megaAPI downloadMediaMessage |
+| `transcribe.py` | Transcreve audio recebido via OpenAI Whisper (opcional) |
 
 ## Multi-sessão
 
