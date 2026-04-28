@@ -41,6 +41,13 @@ SESSIONS = {
     # },
 }
 
+# ------------------------------------------------------------
+# Multimodal (opcional - deixe em branco para desativar)
+# ------------------------------------------------------------
+# OpenAI Whisper para transcrever audios recebidos.
+# Pegue chave: https://platform.openai.com/api-keys
+OPENAI_API_KEY = ""
+
 # Defaults derivados (nao alterar)
 ALLOWED_PHONE = SESSIONS["1"]["phone"]
 ALLOWED_LID   = SESSIONS["1"]["lid"]
