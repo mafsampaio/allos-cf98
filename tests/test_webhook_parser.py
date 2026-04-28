@@ -112,3 +112,4 @@ def test_image_without_caption_uses_placeholder(fake_config, tmp_workdir):
                return_value="media/session1/IMG2.png"):
         msg = handler._parse(payload, session="1")
     assert msg["text"] == "[image]"
+    assert msg["media_type"] == "imageMessage"

@@ -83,7 +83,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 text = (
                     msg_block.get("conversation")
                     or msg_block.get("extendedTextMessage", {}).get("text")
-                    or "[unknown]"
+                    or "[midia]"
                 )
 
             return {
