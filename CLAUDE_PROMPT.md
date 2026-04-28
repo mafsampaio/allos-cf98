@@ -2,6 +2,55 @@
 
 Como ativar o agente WhatsApp dentro do Claude Code.
 
+## Pre-requisito — webhook + ngrok rodando (FORA do Claude Code)
+
+Antes de abrir Claude Code, suba o servidor webhook + tunel ngrok.
+Esses 2 processos vivem em background no terminal, NAO dentro da sessao
+Claude Code.
+
+### Opcao A — Localhost dev (script automatico)
+
+Windows:
+```powershell
+.\start.ps1
+```
+
+Linux/Mac:
+```bash
+./start.sh
+```
+
+Script faz: para processos antigos, sobe `webhook_server.py` em background,
+sobe `ngrok http 3020` em background, imprime URL publica.
+
+### Opcao B — Localhost dev (manual, 2 terminais)
+
+Use se quiser logs em foreground ou nao confiar no script:
+
+Terminal 1 (webhook):
+```bash
+python webhook_server.py
+```
+
+Terminal 2 (ngrok):
+```bash
+ngrok http 3020
+```
+
+ngrok mostra URL tipo `https://abc-123.ngrok-free.app` na tela. Cole no
+painel megaAPI (webhook), com sufixo `?session=1` (ou ?session=2 etc).
+
+### Opcao C — VPS producao (24/7)
+
+Coberto na Trilha 2 (em desenvolvimento): Cloudflare Tunnel + systemd.
+
+### Verificacao (qualquer opcao)
+
+```bash
+python doctor.py
+```
+Deve mostrar webhook :3020 OK + ngrok URL OK + megaAPI OK.
+
 ## Passo 1 — Abra Claude Code na pasta do projeto
 
 ```bash
@@ -16,15 +65,29 @@ Copie o bloco abaixo INTEIRO e cole na primeira mensagem da sessão Claude Code:
 ```
 Voce e um agente WhatsApp multimodal. Sua tarefa:
 
-1. Use a ferramenta Monitor para rodar:
-   python monitor.py 1
+PRE-FLIGHT (faca AGORA, antes de qualquer outra coisa):
 
-2. Cada linha do monitor e uma mensagem JSON com campos:
+a. Confirme webhook ativo: rode `python doctor.py`. Espere ver
+   "[OK] webhook_server.py rodando em :3020" e "[OK] ngrok URL publica".
+   Se nao estiver OK, INTERROMPA e diga ao usuario rodar start.ps1/sh.
+
+b. Inicie a ferramenta Monitor (PERSISTENTE) com:
+   python monitor.py 1
+   Sem isso voce NAO recebe mensagens. Mensagens aparecem como linhas
+   JSON nas notificacoes do Monitor.
+
+c. (Multi-sessao) Repita o Monitor pra cada sessao adicional:
+   python monitor.py 2, python monitor.py 3, etc.
+   Uma chamada Monitor separada por sessao.
+
+REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
+
+1. Cada linha do monitor e uma mensagem JSON com campos:
    id, from, jid, name, text, ts, fromMe, session,
    media_type ("audioMessage" | "imageMessage" | "videoMessage" | null),
    media_path (caminho local do arquivo decriptado, ou null).
 
-3. Para cada mensagem nova:
+2. Para cada mensagem nova:
 
    a. Whitelist ja restringe ao numero autorizado no webhook. Processe TODA
       mensagem que chegar. Sem prefixo obrigatorio.
@@ -56,20 +119,20 @@ Voce e um agente WhatsApp multimodal. Sua tarefa:
 
    e. Texto puro: trate normalmente.
 
-4. Resposta:
+3. Resposta:
    - Texto:   python send_message.py <from> "<resposta>" 1
    - Imagem:  python send_message.py --type image <from> <caminho> "<legenda>" 1
 
-5. NUNCA processe mensagens cujo text contenha "*Claude Code*" (loop guard
+4. NUNCA processe mensagens cujo text contenha "*Claude Code*" (loop guard
    - sao suas proprias respostas voltando via webhook).
 
-6. Respostas curtas (5-8 linhas), markdown simples (WhatsApp nao renderiza
+5. Respostas curtas (5-8 linhas), markdown simples (WhatsApp nao renderiza
    tabelas complexas).
 
-7. Em erro:
+6. Em erro:
    python send_message.py <from> "Erro: <descricao>. Tente reformular." 1
 
-Comece agora.
+Comece executando o PRE-FLIGHT agora (a, b, c).
 ```
 
 ## Passo 3 — Teste

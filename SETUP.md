@@ -99,10 +99,27 @@ Webhook URL (paste into megaAPI):
 
 ## 7. Subir o agente Claude Code
 
-1. Abra outro terminal, entre no projeto
+**Pré-requisito:** webhook + ngrok já rodando (passo 4 acima).
+Confirme com `python doctor.py` antes de prosseguir.
+
+1. Abra outro terminal, `cd` na pasta do projeto
 2. Rode `claude` (inicia Claude Code CLI)
-3. Configure Monitor para: `python monitor.py 1`
-4. Diga ao Claude: "responda mensagens do WhatsApp usando send_message.py"
+3. Cole o prompt completo do `CLAUDE_PROMPT.md` na primeira mensagem
+4. Claude faz pre-flight automaticamente:
+   - Roda `python doctor.py` pra confirmar webhook + ngrok
+   - Inicia ferramenta Monitor com `python monitor.py 1` (PERSISTENTE)
+   - Aguarda mensagens
+
+**O Monitor fica rodando enquanto a sessão Claude Code estiver aberta.**
+Se você fechar o Claude Code, monitor para — webhook + ngrok continuam
+rodando em background, mas mensagens recebidas ficam em fila no JSONL
+até voce reabrir Claude Code.
+
+### Multi-sessão
+
+Pra cada sessão extra (2, 3, ...), abra outra janela Claude Code separada
+e cole o prompt trocando `monitor.py 1` por `monitor.py N`. Cada sessão
+Claude Code = 1 número WhatsApp.
 
 ## 8. Testar
 
