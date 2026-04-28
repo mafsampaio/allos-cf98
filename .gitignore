@@ -33,3 +33,6 @@ logs/
 ngrok.exe
 ngrok
 .ngrok2/
+
+# Media files (downloaded image/audio/video)
+media/
