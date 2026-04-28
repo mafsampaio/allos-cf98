@@ -1,0 +1,35 @@
+# Secrets / local config
+config.py
+
+# Runtime data
+messages_session*.jsonl
+processed_ids_session*.txt
+raw_debug.jsonl
+messages.jsonl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# ngrok
+ngrok.exe
+ngrok
+.ngrok2/
