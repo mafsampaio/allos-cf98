@@ -14,34 +14,53 @@ claude
 Copie o bloco abaixo INTEIRO e cole na primeira mensagem da sessão Claude Code:
 
 ```
-Voce e um agente WhatsApp. Sua tarefa:
+Voce e um agente WhatsApp multimodal. Sua tarefa:
 
 1. Use a ferramenta Monitor para rodar:
    python monitor.py 1
 
-2. Cada linha que o monitor emitir e uma mensagem JSON nova do WhatsApp,
-   com campos: id, from, jid, name, text, ts, fromMe, session.
+2. Cada linha do monitor e uma mensagem JSON com campos:
+   id, from, jid, name, text, ts, fromMe, session,
+   media_type ("audioMessage" | "imageMessage" | "videoMessage" | null),
+   media_path (caminho local do arquivo decriptado, ou null).
 
 3. Para cada mensagem nova:
-   a. Verifique se text comeca com "!CMD_TOKEN " (substitua CMD_TOKEN pelo
-      valor real definido em config.py). Se nao comecar, IGNORE silenciosamente.
-   b. Se comecar, remova o prefixo "!CMD_TOKEN " e trate o restante como
-      tarefa/pergunta do usuario.
-   c. Execute a tarefa (pode ser pergunta livre, comando shell, leitura de
-      arquivo, qualquer coisa que voce ja sabe fazer).
-   d. Envie resposta de volta com:
-      python send_message.py <from> "<sua_resposta>" 1
 
-4. NUNCA processe mensagens onde o texto contenha "*Claude Code*"
-   (sao suas proprias respostas voltando via webhook - causaria loop).
+   a. Se text comeca com "!CMD_TOKEN " (use o valor real de config.py),
+      remova o prefixo e processe o restante como tarefa.
+      Senao, IGNORE silenciosamente.
 
-5. Mantenha respostas curtas (max 5-8 linhas) por padrao. Use markdown
-   simples. WhatsApp nao renderiza tabela complexa.
+   b. Se media_type == "audioMessage" e media_path existir:
+      - Rode: python transcribe.py <media_path>
+      - Use a transcricao como pergunta/comando do usuario.
+      - Se OPENAI_API_KEY nao estiver configurada, transcribe.py retorna
+        "[audio - transcricao desativada...]" - responda no WhatsApp pedindo
+        para o usuario configurar ou mandar texto.
 
-6. Em caso de erro ao executar, responda no WhatsApp com:
-   "Erro: <descricao curta>. Tente reformular."
+   c. Se media_type == "imageMessage" e media_path existir:
+      - Use Read no media_path - sua visao e nativa, voce ve a imagem.
+      - text contem a legenda (caption) ou "[image]" se sem legenda.
+      - Analise e responda em texto.
 
-Pronto. Comece a monitorar agora.
+   d. Se media_type == "videoMessage":
+      - Responda: "Videos nao sao suportados ainda."
+
+   e. Texto puro: trate normalmente.
+
+4. Resposta:
+   - Texto:   python send_message.py <from> "<resposta>" 1
+   - Imagem:  python send_message.py --type image <from> <caminho> "<legenda>" 1
+
+5. NUNCA processe mensagens cujo text contenha "*Claude Code*" (loop guard
+   - sao suas proprias respostas voltando via webhook).
+
+6. Respostas curtas (5-8 linhas), markdown simples (WhatsApp nao renderiza
+   tabelas complexas).
+
+7. Em erro:
+   python send_message.py <from> "Erro: <descricao>. Tente reformular." 1
+
+Comece agora.
 ```
 
 ## Passo 3 — Substitua CMD_TOKEN
@@ -99,3 +118,16 @@ arquivos no projeto, busque na web, execute scripts.
 - Para pausar temporariamente: pare o webhook (`./stop.sh`)
 - Logs do webhook: `webhook.log` e `webhook.err.log`
 - Se mensagens não chegam: rode `python doctor.py`
+
+## Adicionar nova sessao
+
+Para conectar mais um numero WhatsApp ao mesmo deployment:
+
+1. `python add_session.py` (wizard pergunta instance/token/phone)
+2. No painel megaAPI da nova instancia, configure webhook como `<URL_NGROK>/?session=N`
+3. Mande 1 msg pra voce mesmo no novo numero
+4. `python discover_lid.py N`
+5. Em outra sessao Claude Code: cole o mesmo prompt acima trocando
+   `monitor.py 1` por `monitor.py N` e `... 1` por `... N` no send.
+
+Cada sessao Claude Code = 1 numero = 1 instancia. Sessoes independentes.

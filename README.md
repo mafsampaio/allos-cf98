@@ -71,13 +71,25 @@ WhatsApp ← megaAPI ← send_message.py ← Claude Code ← monitor.py (Monitor
 
 ## Multi-sessão
 
-Adicione blocos extras em `SESSIONS` no `config.py`. Cada sessão = 1 número
-WhatsApp + 1 instância megaAPI. URL webhook usa `?session=N`:
+Adicionar nova instancia ao deployment ja rodando:
 
+```bash
+python add_session.py
 ```
-https://abc.ngrok.app/?session=1   → número A
-https://abc.ngrok.app/?session=2   → número B
-```
+
+O wizard atribui o proximo ID livre. Configure o webhook da nova instancia
+megaAPI como `https://abc.ngrok.app/?session=N`. Cada sessao roda em
+sua propria sessao Claude Code (`python monitor.py N`).
+
+## Multimodal
+
+| Direcao | Texto | Imagem | Audio |
+|---------|-------|--------|-------|
+| Recebe  | OK    | OK (Claude le via Read tool) | OK (Whisper transcreve) |
+| Envia   | OK    | OK (`--type image`) | nao suportado |
+
+Multimodal e opcional: sem `OPENAI_API_KEY`, recebimento de audio ainda
+funciona (arquivo salvo em `media/sessionN/`), mas sem transcricao automatica.
 
 ## Documentação completa
 

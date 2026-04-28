@@ -141,3 +141,30 @@ Webhook URL para sessão 2: `https://abc-123.ngrok-free.app/?session=2`
 | Loop infinito | Confirme assinatura `*Claude Code*` está em `config.py` SIGNATURE |
 
 Mais detalhes técnicos em `PROJETO.md`.
+
+## 10. Multimodal (opcional)
+
+### 10.1 Receber audio com transcricao
+
+1. Crie conta em https://platform.openai.com
+2. Gere API key em https://platform.openai.com/api-keys
+3. Edite `config.py`: `OPENAI_API_KEY = "sk-..."`
+4. Reinicie webhook: `./stop.sh && ./start.sh`
+5. Mande audio no WhatsApp. Claude roda `python transcribe.py <path>` e
+   responde com base no texto transcrito.
+
+### 10.2 Receber imagens
+Funciona automaticamente. Imagem decriptada vai pra `media/sessionN/<id>.jpg`.
+Claude usa `Read` no arquivo (visao nativa) e descreve.
+
+### 10.3 Enviar imagens
+```bash
+python send_message.py --type image 5511999999999 ./foto.jpg "minha legenda" 1
+```
+
+## 11. Adicionar nova instancia
+```bash
+python add_session.py
+```
+Configure webhook da nova: `<URL_NGROK>/?session=N`. Em outra sessao
+Claude Code: `python monitor.py N`.
