@@ -146,6 +146,33 @@ def check_runtime_files():
             warn(f"{f} vazio - {hint}")
 
 
+def check_openai():
+    try:
+        from config import OPENAI_API_KEY
+    except ImportError:
+        warn("config.py sem OPENAI_API_KEY (multimodal off)")
+        return
+    if not OPENAI_API_KEY:
+        warn("OPENAI_API_KEY vazio - transcricao de audio desativada")
+        return
+    try:
+        result = subprocess.run(
+            ["curl", "-s", "-o", os.devnull, "-w", "%{http_code}",
+             "-H", f"Authorization: Bearer {OPENAI_API_KEY}",
+             "https://api.openai.com/v1/models"],
+            capture_output=True, text=True, timeout=10,
+        )
+        code = result.stdout.strip()
+        if code == "200":
+            ok("OpenAI API key valida (Whisper transcription disponivel)")
+        elif code == "401":
+            err("OpenAI API key invalida (401)")
+        else:
+            warn(f"OpenAI API: HTTP {code}")
+    except Exception as e:
+        warn(f"OpenAI API: erro ({e})")
+
+
 def main():
     print("")
     print("=" * 60)
@@ -166,6 +193,9 @@ def main():
     print("")
     print("[MEGAAPI]")
     check_megaapi(sessions)
+    print("")
+    print("[MULTIMODAL]")
+    check_openai()
     print("")
     print("[FILES]")
     check_runtime_files()
