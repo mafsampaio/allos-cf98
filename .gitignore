@@ -25,6 +25,11 @@ Thumbs.db
 .idea/
 *.swp
 
+# MCP tooling caches
+.serena/
+.claude/
+.codex/
+
 # Logs
 *.log
 logs/
