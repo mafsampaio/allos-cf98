@@ -6,6 +6,7 @@ import os
 PORT = 3020
 
 from config import SESSIONS
+import media_handler
 
 
 def messages_file(session: str) -> str:
@@ -50,7 +51,6 @@ class WebhookHandler(BaseHTTPRequestHandler):
             key = data.get("key", {})
             jid = key.get("remoteJid", "") or data.get("jid", "")
 
-            # ignorar grupos e newsletters
             if "@g.us" in jid or "@newsletter" in jid:
                 return None
 
@@ -64,20 +64,38 @@ class WebhookHandler(BaseHTTPRequestHandler):
             if not is_self_chat and not is_authorized_incoming:
                 return None
 
-            msg = data.get("message", {})
-            text = (
-                msg.get("conversation")
-                or msg.get("extendedTextMessage", {}).get("text")
-                or "[midia]"
-            )
+            msg_block = data.get("message", {}) or {}
+            msg_id = key.get("id", "")
+
+            message_type = media_handler.detect_message_type(data)
+            media_path = None
+            text = None
+
+            if message_type:
+                keys = media_handler.extract_message_keys(msg_block, message_type)
+                if keys:
+                    media_path = media_handler.download_media(session, msg_id, keys)
+                inner = msg_block.get(message_type, {}) or {}
+                caption = inner.get("caption") if message_type != "audioMessage" else None
+                kind_short = message_type.replace("Message", "")
+                text = caption or f"[{kind_short}]"
+            else:
+                text = (
+                    msg_block.get("conversation")
+                    or msg_block.get("extendedTextMessage", {}).get("text")
+                    or "[unknown]"
+                )
+
             return {
-                "id": key.get("id"),
-                "from": phone,
-                "jid": jid,
-                "name": data.get("pushName", ""),
-                "text": text,
-                "ts": data.get("messageTimestamp", 0),
-                "fromMe": from_me,
+                "id":         msg_id,
+                "from":       phone,
+                "jid":        jid,
+                "name":       data.get("pushName", ""),
+                "text":       text,
+                "ts":         data.get("messageTimestamp", 0),
+                "fromMe":     from_me,
+                "media_type": message_type,
+                "media_path": media_path,
             }
         except Exception as e:
             print(f"PARSE_ERROR: {e}", flush=True)
