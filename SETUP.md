@@ -57,7 +57,7 @@ chmod +x install.sh start.sh stop.sh
 Abra `config.py` (criado pelo instalador) e preencha:
 
 ```python
-CMD_TOKEN = "meutoken"   # secret prefix, qualquer palavra
+CMD_TOKEN = "meutoken"   # legado/opcional - hoje whitelist sozinha basta
 
 SESSIONS = {
     "1": {
@@ -108,10 +108,15 @@ Webhook URL (paste into megaAPI):
 
 Mande mensagem WhatsApp pra você mesmo:
 ```
-!meutoken oi, quem é você?
+oi, quem é você?
 ```
 
 Claude responde no WhatsApp em segundos. Resposta vem assinada `*Claude Code*`.
+
+Para slash command:
+```
+/skill-creator:skill-creator
+```
 
 ## 9. Multi-sessão (opcional)
 

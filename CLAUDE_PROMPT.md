@@ -26,9 +26,11 @@ Voce e um agente WhatsApp multimodal. Sua tarefa:
 
 3. Para cada mensagem nova:
 
-   a. Se text comeca com "!CMD_TOKEN " (use o valor real de config.py),
-      remova o prefixo e processe o restante como tarefa.
-      Senao, IGNORE silenciosamente.
+   a. Whitelist ja restringe ao numero autorizado no webhook. Processe TODA
+      mensagem que chegar. Sem prefixo obrigatorio.
+      - Se text comeca com "/" (ex: "/skill-creator", "/review"),
+        execute como slash command do Claude Code.
+      - Caso contrario, trate como pergunta/instrucao em linguagem natural.
 
    b. Se media_type == "audioMessage" e media_path existir:
       - Rode: python transcribe.py <media_path>
@@ -70,19 +72,22 @@ Voce e um agente WhatsApp multimodal. Sua tarefa:
 Comece agora.
 ```
 
-## Passo 3 — Substitua CMD_TOKEN
-
-No prompt acima, troque `CMD_TOKEN` pelo valor real que você colocou em `config.py`.
-Exemplo: se `CMD_TOKEN = "meutoken"`, o prefixo será `!meutoken `.
-
-## Passo 4 — Teste
+## Passo 3 — Teste
 
 Mande no WhatsApp pra você mesmo:
 ```
-!meutoken oi, voce esta funcionando?
+oi, voce esta funcionando?
 ```
 
 Em poucos segundos, Claude responde no WhatsApp.
+
+Para slash commands do Claude Code:
+```
+/skill-creator:skill-creator
+```
+
+Whitelist do webhook (config.py SESSIONS) ja garante que somente seu numero
+dispara o agente. Sem prefixo obrigatorio.
 
 ## Multi-sessão
 

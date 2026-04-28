@@ -81,7 +81,8 @@ def main() -> int:
     print("Preencha os dados abaixo (Enter usa valor padrao quando mostrado):")
     print("")
 
-    cmd_token = ask("CMD_TOKEN (palavra secreta, ex: meutoken)", default="meutoken")
+    print("  CMD_TOKEN e legado/opcional. Whitelist (numero) sozinha basta.")
+    cmd_token = ask("CMD_TOKEN (Enter pra pular)", default="", required=False)
     print("")
     print("--- megaAPI (https://megaapi.com.br) ---")
     instance = ask("Nome da instancia (ex: megabusiness-meuagente)")

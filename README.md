@@ -104,9 +104,10 @@ funciona (arquivo salvo em `media/sessionN/`), mas sem transcricao automatica.
 ## Segurança
 
 - `config.py` está no `.gitignore` — nunca será commitado.
-- `CMD_TOKEN` exigido como prefixo (ex: `!s7dev liste arquivos`).
-- Whitelist por número telefone — só processa mensagens autorizadas.
+- Whitelist por número telefone — só processa mensagens autorizadas (sem prefixo obrigatório).
 - Self-chat suportado (mande mensagem para si mesmo no WhatsApp).
+- Slash commands do Claude Code: `/skill-name args` direto na mensagem.
+- `CMD_TOKEN` em config.py é legado — mantido pra quem quiser camada extra de segurança.
 
 ## Trilha 2 — VPS produção
 

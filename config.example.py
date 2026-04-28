@@ -5,10 +5,11 @@
 # DO NOT commit config.py (already in .gitignore).
 # ============================================================
 
-# Token secreto para executar comandos via WhatsApp.
-# Mensagens devem comecar com !TOKEN para serem processadas.
-# Exemplo: !meutoken liste arquivos da pasta atual
-CMD_TOKEN = "CHANGE_ME_secret_token"
+# Token legado/opcional. Whitelist (SESSIONS phone) ja restringe quem pode
+# disparar o agente. Deixe vazio se nao quiser camada extra.
+# Quando definido, voce pode opcionalmente exigir prefixo "!TOKEN " no
+# CLAUDE_PROMPT.md (precisa editar manualmente).
+CMD_TOKEN = ""
 
 # Assinatura automatica anexada em todas as respostas.
 # Tambem usada para quebrar loop (ignora mensagens proprias).
