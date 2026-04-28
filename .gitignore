@@ -29,6 +29,7 @@ Thumbs.db
 .serena/
 .claude/
 .codex/
+docs/superpowers/
 
 # Logs
 *.log
