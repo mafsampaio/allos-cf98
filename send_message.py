@@ -28,6 +28,8 @@ EXT_MIME = {
     ".gif":  "image/gif",
 }
 
+MAX_IMAGE_BYTES = 16 * 1024 * 1024  # 16 MB - WhatsApp media limit
+
 
 def _curl_json(url: str, payload_json: str, token: str) -> dict:
     try:
@@ -70,6 +72,10 @@ def _detect_mime(path: str) -> str:
 def send_image(phone: str, image_path: str, caption: str = "", session: str = "1") -> dict:
     if not os.path.exists(image_path):
         return {"error": f"image not found: {image_path}"}
+
+    size = os.path.getsize(image_path)
+    if size > MAX_IMAGE_BYTES:
+        return {"error": f"image too large: {size} bytes (max {MAX_IMAGE_BYTES})"}
 
     cfg = SESSIONS.get(session, SESSIONS["1"])
     url = MEDIA_ENDPOINT.format(host=MEGA_HOST, instance=cfg["instance"])

@@ -80,3 +80,14 @@ def test_send_image_detects_mime_from_extension(fake_config, tmp_workdir):
 
     body = json.loads(captured["args"][captured["args"].index("-d") + 1])
     assert body["messageData"]["mimeType"] == "image/png"
+
+
+def test_send_image_rejects_oversized_file(fake_config, tmp_workdir, monkeypatch):
+    sm = _import()
+    big = tmp_workdir / "big.jpg"
+    big.write_bytes(b"X" * 1024)  # only 1KB but we'll lower the limit
+
+    monkeypatch.setattr(sm, "MAX_IMAGE_BYTES", 100)  # force trigger
+    result = sm.send_image("5511888888888", str(big), session="1")
+    assert "error" in result
+    assert "too large" in result["error"].lower()
