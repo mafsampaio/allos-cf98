@@ -163,6 +163,7 @@ Webhook URL para sessão 2: `https://abc-123.ngrok-free.app/?session=2`
 | Loop infinito | Confirme assinatura `*Claude Code*` está em `config.py` SIGNATURE |
 
 Mais detalhes técnicos em `PROJETO.md`.
+Roadmap de deploy 24/7: `docs/TRILHA_2_ROADMAP.md`.
 
 ## 10. Multimodal (opcional)
 

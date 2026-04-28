@@ -109,7 +109,14 @@ funciona (arquivo salvo em `media/sessionN/`), mas sem transcricao automatica.
 - Slash commands do Claude Code: `/skill-name args` direto na mensagem.
 - `CMD_TOKEN` em config.py é legado — mantido pra quem quiser camada extra de segurança.
 
+## Status
+
+- Branch atual: `trilha-1-multimodal` (tag `v1.0-trilha1`)
+- Trilha 1 (multi-sessao + multimodal) **concluida e validada E2E** em 2026-04-28
+- 26 testes pytest passando
+
 ## Trilha 2 — VPS produção
 
 Próxima fase: deploy 24/7 em VPS com Cloudflare Tunnel + systemd.
-Ver `PROJETO.md` seção roadmap.
+Ver [`docs/TRILHA_2_ROADMAP.md`](./docs/TRILHA_2_ROADMAP.md) e
+[`PROJETO.md`](./PROJETO.md) seção roadmap.
