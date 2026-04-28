@@ -8,8 +8,7 @@ def tmp_workdir(tmp_path, monkeypatch):
     """Isolated cwd. Repo root on sys.path so production modules import."""
     import os
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if repo_root not in sys.path:
-        sys.path.insert(0, repo_root)
+    monkeypatch.syspath_prepend(repo_root)
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -36,7 +35,9 @@ MEGA_BASE_URL = f"{MEGA_HOST}/rest/sendMessage/{MEGA_INSTANCE}"
 OPENAI_API_KEY = ""
 '''
     (tmp_workdir / "config.py").write_text(cfg, encoding="utf-8")
+    sys.modules.pop("config", None)
     sys.path.insert(0, str(tmp_workdir))
     yield tmp_workdir
-    sys.path.remove(str(tmp_workdir))
+    if str(tmp_workdir) in sys.path:
+        sys.path.remove(str(tmp_workdir))
     sys.modules.pop("config", None)
