@@ -52,6 +52,8 @@ SESSIONS = {{
     }},
 }}
 
+OPENAI_API_KEY = {cfg["openai_key"]!r}
+
 ALLOWED_PHONE = SESSIONS["1"]["phone"]
 ALLOWED_LID   = SESSIONS["1"]["lid"]
 MEGA_INSTANCE = SESSIONS["1"]["instance"]
@@ -92,6 +94,11 @@ def main() -> int:
         print("  ERRO: numero invalido.")
         return 1
 
+    print("")
+    print("--- Multimodal (opcional) ---")
+    openai_key = ask("OPENAI_API_KEY (transcricao de audio via Whisper, deixe vazio para pular)",
+                     default="", required=False)
+
     cfg = {
         "cmd_token": cmd_token,
         "signature": "*Claude Code*",
@@ -100,6 +107,7 @@ def main() -> int:
         "token":     token,
         "phone":     phone,
         "lid":       "",
+        "openai_key": openai_key,
     }
 
     write_config(cfg)
