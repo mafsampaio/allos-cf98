@@ -31,6 +31,18 @@ Thumbs.db
 .codex/
 docs/superpowers/
 
+# Build artefacts
+build/
+dist/
+*.egg-info/
+
+# Bootstrap runtime
+cloudflared.log
+
+# IDE
+.idea/
+*.iml
+
 # Logs
 *.log
 logs/
