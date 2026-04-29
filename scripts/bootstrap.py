@@ -117,8 +117,19 @@ def start_quick_tunnel(cloudflared_path: str) -> tuple:
     print("[bootstrap] starting Quick Tunnel via cloudflared...")
     log_path = Path("cloudflared.log")
     log = open(log_path, "wb")
+    # Force --config <devnull> so cloudflared ignores any pre-existing
+    # ~/.cloudflared/config.yml. Without this, a user who already runs a
+    # named tunnel (e.g. for production) would have those ingress rules
+    # silently merged into the Quick Tunnel run, causing 404 for the
+    # generated *.trycloudflare.com hostname.
+    devnull = "nul" if sys.platform == "win32" else "/dev/null"
     proc = subprocess.Popen(
-        [cloudflared_path, "tunnel", "--url", "http://127.0.0.1:3020"],
+        [
+            cloudflared_path, "tunnel",
+            "--no-autoupdate",
+            "--config", devnull,
+            "--url", "http://127.0.0.1:3020",
+        ],
         stdout=log, stderr=log,
     )
     deadline = time.time() + 30
