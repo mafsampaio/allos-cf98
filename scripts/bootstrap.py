@@ -5,7 +5,7 @@ Runs deps check, config wizard, webhook server, Quick Tunnel via cloudflared,
 captures the public URL, persists it in config.PUBLIC_WEBHOOK_URL, and pushes
 it to every megaAPI session registered in config.SESSIONS.
 
-Usage: python bootstrap.py
+Usage: python scripts/bootstrap.py
 """
 import os
 import re
@@ -56,7 +56,7 @@ def ensure_config() -> None:
     if Path("config.py").exists():
         return
     print("[bootstrap] config.py not found - running wizard...")
-    code = subprocess.call([sys.executable, "setup_config.py"])
+    code = subprocess.call([sys.executable, "-m", "whatsapp_agent.setup_config"])
     if code != 0 or not Path("config.py").exists():
         sys.exit("ERROR: config wizard did not produce config.py.")
 
@@ -65,7 +65,7 @@ def start_webhook() -> subprocess.Popen:
     print("[bootstrap] starting webhook_server.py on :3020...")
     log = open("webhook.log", "ab")
     proc = subprocess.Popen(
-        [sys.executable, "webhook_server.py"],
+        [sys.executable, "-m", "whatsapp_agent.webhook_server"],
         stdout=log, stderr=log,
     )
     time.sleep(2)
@@ -112,7 +112,7 @@ def write_public_url(url: str) -> None:
 
 def push_webhooks() -> None:
     print("[bootstrap] pushing webhook URL to megaAPI sessions...")
-    code = subprocess.call([sys.executable, "update_webhooks.py"])
+    code = subprocess.call([sys.executable, "-m", "whatsapp_agent.update_webhooks"])
     if code != 0:
         sys.exit("ERROR: update_webhooks.py failed.")
 
@@ -121,7 +121,7 @@ def main() -> int:
     print("=" * 60)
     print("WhatsApp Claude Agent - Bootstrap")
     print("=" * 60)
-    os.chdir(Path(__file__).resolve().parent)
+    os.chdir(Path(__file__).resolve().parent.parent)
     check_python()
     check_curl()
     cf = find_cloudflared()

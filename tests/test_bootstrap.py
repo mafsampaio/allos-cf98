@@ -1,12 +1,17 @@
 """Tests for bootstrap.py orchestration helpers."""
-import sys
-import os
+import importlib.util
+import pathlib
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_spec = importlib.util.spec_from_file_location(
+    "bootstrap",
+    pathlib.Path(__file__).parent.parent / "scripts" / "bootstrap.py",
+)
+bootstrap = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(bootstrap)
+
+extract_quick_tunnel_url = bootstrap.extract_quick_tunnel_url
 
 import pytest
-
-from bootstrap import extract_quick_tunnel_url
 
 
 def test_extract_url_from_cloudflared_log_quick_tunnel():
@@ -30,14 +35,12 @@ def test_extract_url_strips_box_borders_and_whitespace():
 
 
 def test_main_is_callable():
-    import bootstrap
     assert callable(bootstrap.main)
     assert callable(bootstrap.find_cloudflared)
 
 
 def test_find_cloudflared_returns_none(monkeypatch, tmp_path):
     import shutil as _shutil
-    import bootstrap
     monkeypatch.setattr(_shutil, "which", lambda _: None)
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     assert bootstrap.find_cloudflared() is None
