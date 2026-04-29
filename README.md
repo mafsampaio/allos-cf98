@@ -12,10 +12,10 @@ Self-hosted WhatsApp agent that uses **Claude Code CLI** as the LLM engine
 ```bash
 git clone https://github.com/giovani-junior-dev/Allos.git whatsapp-claude-agent
 cd whatsapp-claude-agent
-python bootstrap.py
+python scripts/bootstrap.py
 ```
 
-`bootstrap.py` runs the config wizard, starts the webhook server, opens a
+`scripts/bootstrap.py` runs the config wizard, starts the webhook server, opens a
 Cloudflare Quick Tunnel, and pushes the public URL to your megaAPI session.
 Then you open Claude Code and paste a one-liner. Done.
 
@@ -46,7 +46,7 @@ WhatsApp <- megaAPI <- send_message.py <- Claude Code session <- monitor.py (Mon
 
 ## Two tunnel modes
 
-**Quick Tunnel (default, zero-config):** random `*.trycloudflare.com` URL, regenerated each run, no domain needed. Used by `bootstrap.py`.
+**Quick Tunnel (default, zero-config):** random `*.trycloudflare.com` URL, regenerated each run, no domain needed. Used by `scripts/bootstrap.py`.
 
 **Named Tunnel (production):** stable subdomain on a domain you control in Cloudflare. See [SETUP.md § Named Tunnel](SETUP.md#named-tunnel).
 
@@ -55,8 +55,8 @@ WhatsApp <- megaAPI <- send_message.py <- Claude Code session <- monitor.py (Mon
 One deployment can serve multiple WhatsApp instances:
 
 ```bash
-python add_session.py    # wizard to add session 2, 3, ...
-python update_webhooks.py # re-pushes URL to all sessions
+python -m whatsapp_agent.add_session    # wizard to add session 2, 3, ...
+python -m whatsapp_agent.update_webhooks # re-pushes URL to all sessions
 ```
 
 Open one Claude Code session per WhatsApp session and paste:
@@ -73,20 +73,22 @@ Open one Claude Code session per WhatsApp session and paste:
 
 ```
 .
-|-- bootstrap.py          # one-command install/run
-|-- webhook_server.py     # HTTP :3020 receiver
-|-- monitor.py            # JSONL tail (Monitor target)
-|-- send_message.py       # outbound megaAPI client
-|-- update_webhooks.py    # push PUBLIC_WEBHOOK_URL to all sessions
-|-- doctor.py             # diagnostics
-|-- add_session.py        # wizard to add another WhatsApp session
-|-- discover_lid.py       # auto-fill LID after first message
-|-- media_handler.py      # decrypt+save media via megaAPI
-|-- transcribe.py         # OpenAI Whisper wrapper
-|-- setup_config.py       # interactive config wizard
+|-- src/whatsapp_agent/   # installable package (pip install -e .)
+|   |-- webhook_server.py # HTTP :3020 receiver
+|   |-- monitor.py        # JSONL tail (Monitor target)
+|   |-- send_message.py   # outbound megaAPI client
+|   |-- update_webhooks.py# push PUBLIC_WEBHOOK_URL to all sessions
+|   |-- doctor.py         # diagnostics
+|   |-- add_session.py    # wizard to add another WhatsApp session
+|   |-- discover_lid.py   # auto-fill LID after first message
+|   |-- media_handler.py  # decrypt+save media via megaAPI
+|   |-- transcribe.py     # OpenAI Whisper wrapper
+|   `-- setup_config.py   # interactive config wizard
+|-- scripts/
+|   |-- bootstrap.py      # one-command install/run
+|   |-- start.{sh,ps1}    # start webhook only (tunnel manages itself)
+|   `-- stop.{sh,ps1}     # stop webhook
 |-- config.example.py     # template (copy to config.py — gitignored)
-|-- start.{sh,ps1}        # start webhook only (tunnel manages itself)
-|-- stop.{sh,ps1}         # stop webhook
 |-- tests/                # pytest
 |-- docs/                 # extended docs and roadmaps
 |-- CLAUDE_PROMPT.md      # paste into Claude Code to activate the agent

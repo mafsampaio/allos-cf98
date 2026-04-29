@@ -22,13 +22,13 @@ echo ""
 
 # --- Kill old webhook ---
 echo "[1/2] Cleaning old webhook + legacy ngrok..."
-pkill -f "python.*webhook_server.py" 2>/dev/null || true
+pkill -f "whatsapp_agent.webhook_server\|webhook_server.py" 2>/dev/null || true
 pkill -f "ngrok http 3020"           2>/dev/null || true
 sleep 1
 
 # --- Start webhook server ---
 echo "[2/2] Starting webhook server on :3020..."
-nohup python3 webhook_server.py > webhook.log 2> webhook.err.log &
+nohup python3 -m whatsapp_agent.webhook_server > webhook.log 2> webhook.err.log &
 echo $! > .webhook.pid
 sleep 2
 
@@ -46,10 +46,10 @@ echo ""
 echo "Cloudflare Tunnel: rode 'cloudflared service install' uma vez"
 echo "  ou: cloudflared tunnel --config ~/.cloudflared/config.yml run whatsapp-webhook"
 echo ""
-echo "Apos alterar PUBLIC_WEBHOOK_URL: python3 update_webhooks.py"
+echo "Apos alterar PUBLIC_WEBHOOK_URL: python3 -m whatsapp_agent.update_webhooks"
 echo ""
 echo "Next: in Claude Code session, set Monitor to:"
-echo "  python3 monitor.py 1"
+echo "  python3 -m whatsapp_agent.monitor 1"
 echo ""
 echo "Logs: webhook.log / webhook.err.log"
 echo "Stop: ./stop.sh"

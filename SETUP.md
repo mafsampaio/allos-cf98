@@ -26,10 +26,10 @@ This is the slow path. If you just want to try the agent, follow the
 ```bash
 git clone https://github.com/giovani-junior-dev/Allos.git whatsapp-claude-agent
 cd whatsapp-claude-agent
-python bootstrap.py
+python scripts/bootstrap.py
 ```
 
-`bootstrap.py` will:
+`scripts/bootstrap.py` will:
 
 1. Verify Python, curl, and cloudflared are present.
 2. Run the config wizard if `config.py` does not exist (asks for instance, token, phone, optional OpenAI key).
@@ -44,7 +44,7 @@ python bootstrap.py
 Send any WhatsApp message to your own number. Then run:
 
 ```bash
-python discover_lid.py
+python -m whatsapp_agent.discover_lid
 ```
 
 This reads `messages_session1.jsonl`, extracts the LID, and writes it back into `config.py`. Without the LID, the whitelist cannot match LID-based group messages.
@@ -64,7 +64,7 @@ In the Claude Code session, send as the first message:
 Leia CLAUDE_PROMPT.md e execute o prompt do passo 2. SESSAO: 1
 ```
 
-Claude will read the prompt, run `python doctor.py`, activate the Monitor tool on `python monitor.py 1`, and start replying to incoming WhatsApp messages.
+Claude will read the prompt, run `python -m whatsapp_agent.doctor`, activate the Monitor tool on `python -m whatsapp_agent.monitor 1`, and start replying to incoming WhatsApp messages.
 
 ## 6. Test it
 
@@ -75,8 +75,8 @@ Send any text message to your WhatsApp number. Claude replies within seconds, si
 Add another WhatsApp instance:
 
 ```bash
-python add_session.py        # asks for instance/token/phone, assigns next ID
-python update_webhooks.py    # re-pushes PUBLIC_WEBHOOK_URL to all sessions
+python -m whatsapp_agent.add_session        # asks for instance/token/phone, assigns next ID
+python -m whatsapp_agent.update_webhooks    # re-pushes PUBLIC_WEBHOOK_URL to all sessions
 ```
 
 Open a second Claude Code session in another terminal and paste:
@@ -109,7 +109,7 @@ ingress:
   - service: http_status:404
 ```
 
-Update `config.PUBLIC_WEBHOOK_URL` to `https://agent.your-domain.com` and run `python update_webhooks.py`.
+Update `config.PUBLIC_WEBHOOK_URL` to `https://agent.your-domain.com` and run `python -m whatsapp_agent.update_webhooks`.
 
 Run the tunnel as a background service:
 
@@ -131,7 +131,7 @@ This stops the webhook. The Cloudflare Tunnel is managed separately (Quick Tunne
 ## Diagnostics
 
 ```bash
-python doctor.py
+python -m whatsapp_agent.doctor
 ```
 
 Prints `[OK]` / `[WARN]` / `[ERRO]` for each component. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for fixes.

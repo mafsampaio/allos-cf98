@@ -21,7 +21,7 @@ Write-Host ""
 # --- Kill old webhook ---
 Write-Host "[1/2] Cleaning old webhook + legacy ngrok..."
 Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='py.exe'" | Where-Object {
-    $_.CommandLine -like "*webhook_server.py*"
+    $_.CommandLine -like "*webhook_server*"
 } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Get-CimInstance Win32_Process -Filter "Name='ngrok.exe'" | Where-Object {
     $_.CommandLine -like "*http 3020*"
@@ -30,7 +30,7 @@ Start-Sleep -Seconds 1
 
 # --- Start webhook server (background) ---
 Write-Host "[2/2] Starting webhook server on :3020..."
-Start-Process -FilePath "python" -ArgumentList "webhook_server.py" -WindowStyle Hidden -RedirectStandardOutput "webhook.log" -RedirectStandardError "webhook.err.log"
+Start-Process -FilePath "python" -ArgumentList "-m", "whatsapp_agent.webhook_server" -WindowStyle Hidden -RedirectStandardOutput "webhook.log" -RedirectStandardError "webhook.err.log"
 Start-Sleep -Seconds 2
 
 Write-Host ""
@@ -47,10 +47,10 @@ Write-Host ""
 Write-Host "Cloudflare Tunnel: instale como servico uma vez:"
 Write-Host "  cloudflared service install" -ForegroundColor White
 Write-Host ""
-Write-Host "Apos alterar PUBLIC_WEBHOOK_URL: python update_webhooks.py" -ForegroundColor White
+Write-Host "Apos alterar PUBLIC_WEBHOOK_URL: python -m whatsapp_agent.update_webhooks" -ForegroundColor White
 Write-Host ""
 Write-Host "Next: in Claude Code session, set Monitor to:"
-Write-Host "  python monitor.py 1" -ForegroundColor White
+Write-Host "  python -m whatsapp_agent.monitor 1" -ForegroundColor White
 Write-Host ""
 Write-Host "Logs: webhook.log / webhook.err.log"
 Write-Host "Stop: .\stop.ps1"

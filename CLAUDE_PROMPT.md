@@ -34,7 +34,7 @@ Linux/Mac:
 ./scripts/start.sh
 ```
 
-Script faz: para processos antigos, sobe `webhook_server.py` em background. Cloudflare Tunnel deve estar rodando como service Windows (ou Linux/macOS daemon) — ver `SETUP.md` ou `scripts/bootstrap.py` para Quick Tunnel automatico.
+Script faz: para processos antigos, sobe `whatsapp_agent.webhook_server` em background. Cloudflare Tunnel deve estar rodando como service Windows (ou Linux/macOS daemon) — ver `SETUP.md` ou `scripts/bootstrap.py` para Quick Tunnel automatico.
 
 ### Opcao B — Localhost dev (manual, 2 terminais)
 
@@ -42,7 +42,7 @@ Use se quiser logs em foreground ou nao confiar no script:
 
 Terminal 1 (webhook):
 ```bash
-python webhook_server.py
+python -m whatsapp_agent.webhook_server
 ```
 
 Terminal 2 (Cloudflare Quick Tunnel):
@@ -50,7 +50,7 @@ Terminal 2 (Cloudflare Quick Tunnel):
 cloudflared tunnel --url http://127.0.0.1:3020
 ```
 
-cloudflared imprime uma URL tipo `https://abc-123.trycloudflare.com`. Atualize `config.PUBLIC_WEBHOOK_URL` e rode `python update_webhooks.py` para empurrar para a megaAPI.
+cloudflared imprime uma URL tipo `https://abc-123.trycloudflare.com`. Atualize `config.PUBLIC_WEBHOOK_URL` e rode `python -m whatsapp_agent.update_webhooks` para empurrar para a megaAPI.
 
 ### Opcao C — VPS producao (24/7)
 
@@ -59,7 +59,7 @@ Coberto na Trilha 2 (em desenvolvimento): Cloudflare Tunnel + systemd.
 ### Verificacao (qualquer opcao)
 
 ```bash
-python doctor.py
+python -m whatsapp_agent.doctor
 ```
 Deve mostrar webhook :3020 OK + tunnel publico OK + megaAPI OK.
 
@@ -88,23 +88,23 @@ CONTEXTO DESTA CLAUDE SESSION:
 
 PRE-FLIGHT (faca AGORA, antes de qualquer outra coisa):
 
-a. Confirme webhook ativo: rode `python doctor.py`. Espere ver
+a. Confirme webhook ativo: rode `python -m whatsapp_agent.doctor`. Espere ver
    "[OK] webhook_server.py rodando em :3020" e "[OK] tunnel publico OK".
    Se nao estiver OK, INTERROMPA e diga ao usuario rodar scripts/start.ps1 (ou scripts/start.sh).
 
 b. Inicie a ferramenta Monitor (PERSISTENTE) com:
-   python monitor.py <SESSAO>
+   python -m whatsapp_agent.monitor <SESSAO>
    Sem isso voce NAO recebe mensagens. Mensagens aparecem como linhas
    JSON nas notificacoes do Monitor.
 
    REGRA OBRIGATORIA: ANTES de chamar a ferramenta Monitor, anuncie
    no chat (texto visivel ao usuario) qual comando vai rodar e em qual
-   sessao WhatsApp, e rode `ps -ef | grep "monitor.py <SESSAO>" | grep -v grep`
-   via Bash para confirmar que NAO existe outro monitor.py orfao
+   sessao WhatsApp, e rode `ps -ef | grep "whatsapp_agent.monitor <SESSAO>" | grep -v grep`
+   via Bash para confirmar que NAO existe outro monitor orfao
    competindo pelo mesmo JSONL/processed_ids. Se houver, mate o orfao
    antes de subir o seu.
 
-   PROIBIDO: rodar `python monitor.py <SESSAO>` via Bash com `&`/nohup/
+   PROIBIDO: rodar `python -m whatsapp_agent.monitor <SESSAO>` via Bash com `&`/nohup/
    run_in_background. Output stdout precisa cair no contexto desta
    sessao Claude Code via ferramenta Monitor — qualquer outro modo
    engole as mensagens (marca processed_ids sem ninguem consumir).
@@ -129,7 +129,7 @@ REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
       - Caso contrario, trate como pergunta/instrucao em linguagem natural.
 
    b. Se media_type == "audioMessage" e media_path existir:
-      - Rode: python transcribe.py <media_path>
+      - Rode: python -m whatsapp_agent.transcribe <media_path>
       - Use a transcricao como pergunta/comando do usuario.
       - Se OPENAI_API_KEY nao estiver configurada, transcribe.py retorna
         "[audio - transcricao desativada...]" - responda no WhatsApp pedindo
@@ -153,8 +153,8 @@ REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
    e. Texto puro: trate normalmente.
 
 3. Resposta (use SEMPRE <SESSAO> no ultimo argumento):
-   - Texto:   python send_message.py <from> "<resposta>" <SESSAO>
-   - Imagem:  python send_message.py --type image <from> <caminho> "<legenda>" <SESSAO>
+   - Texto:   python -m whatsapp_agent.send_message <from> "<resposta>" <SESSAO>
+   - Imagem:  python -m whatsapp_agent.send_message --type image <from> <caminho> "<legenda>" <SESSAO>
 
 4. NUNCA processe mensagens cujo text contenha "*Claude Code*" (loop guard
    - sao suas proprias respostas voltando via webhook).
@@ -163,7 +163,7 @@ REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
    tabelas complexas).
 
 6. Em erro:
-   python send_message.py <from> "Erro: <descricao>. Tente reformular." <SESSAO>
+   python -m whatsapp_agent.send_message <from> "Erro: <descricao>. Tente reformular." <SESSAO>
 
 Comece executando o PRE-FLIGHT agora (a, b, c).
 
@@ -194,7 +194,7 @@ dispara o agente. Sem prefixo obrigatorio.
 
 Para cada sessão extra (`2`, `3`, ...), abra uma sessão Claude Code
 separada e troque APENAS a linha `SESSAO: <N>` no fim do prompt:
-- Sessão 2: `SESSAO: 2` (Claude usa `monitor.py 2` e `send_message.py ... 2`)
+- Sessão 2: `SESSAO: 2` (Claude usa `python -m whatsapp_agent.monitor 2` e `python -m whatsapp_agent.send_message ... 2`)
 - Sessão 3: `SESSAO: 3`
 
 Não precisa editar mais nada — o prompt usa `<SESSAO>` como placeholder.
@@ -232,16 +232,16 @@ arquivos no projeto, busque na web, execute scripts.
 - Para encerrar o agente: feche a sessão Claude Code (Ctrl+C duas vezes)
 - Para pausar temporariamente: pare o webhook (`./scripts/stop.sh`)
 - Logs do webhook: `webhook.log` e `webhook.err.log`
-- Se mensagens não chegam: rode `python doctor.py`
+- Se mensagens não chegam: rode `python -m whatsapp_agent.doctor`
 
 ## Adicionar nova sessao
 
 Para conectar mais um numero WhatsApp ao mesmo deployment:
 
-1. `python add_session.py` (wizard pergunta instance/token/phone)
-2. No painel megaAPI da nova instancia, configure webhook como `<URL_PUBLICA>/?session=N` (use `config.PUBLIC_WEBHOOK_URL`; depois rode `python update_webhooks.py`)
+1. `python -m whatsapp_agent.add_session` (wizard pergunta instance/token/phone)
+2. No painel megaAPI da nova instancia, configure webhook como `<URL_PUBLICA>/?session=N` (use `config.PUBLIC_WEBHOOK_URL`; depois rode `python -m whatsapp_agent.update_webhooks`)
 3. Mande 1 msg pra voce mesmo no novo numero
-4. `python discover_lid.py N`
+4. `python -m whatsapp_agent.discover_lid N`
 5. Em outra sessao Claude Code: cole o mesmo prompt acima trocando
    apenas a linha `SESSAO: 1` por `SESSAO: N` no fim do bloco.
 
