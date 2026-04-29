@@ -6,7 +6,7 @@ import os
 PORT = 3020
 
 from config import SESSIONS
-import media_handler
+from whatsapp_agent import media_handler
 
 
 def messages_file(session: str) -> str:
