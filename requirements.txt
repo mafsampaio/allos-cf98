@@ -1,6 +1,0 @@
-# Zero Python dependencies — uses only stdlib.
-# External requirements (install separately):
-#   - Python 3.8+
-#   - curl (pre-installed on Windows 10+, Linux, macOS)
-#   - ngrok (download from https://ngrok.com/download)
-#   - Claude Code CLI (https://docs.anthropic.com/claude-code)
