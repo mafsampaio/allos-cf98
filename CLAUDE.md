@@ -14,6 +14,12 @@ This project's purpose is to let users drive Claude Code over WhatsApp. When thi
 
 When this session is **not** acting as the WhatsApp agent (no Monitor tool active on `monitor.py`), reply normally in the CLI.
 
+### Self-chat is the default use case — `fromMe` is NOT a filter
+
+The point of this project is the user driving Claude Code through their own WhatsApp number, sending messages to themselves. Every legitimate user message in that mode arrives with `fromMe: true` (the user IS the instance). DO NOT ignore those messages.
+
+The single loop-guard criterion is the literal string `*Claude Code*` in the text field — that is the signature your own replies carry, and it is how you avoid replying to your own echoed message. `fromMe` (true or false) is irrelevant for filtering. The webhook already applied the phone whitelist before writing the JSONL line; if a line is in the file, it is authorized and you must process it (unless its text contains `*Claude Code*`).
+
 ## Rule 2 — persistent task memory via beads (`bd`)
 
 This repo uses [beads](https://github.com/gastownhall/beads) as a persistent, dependency-aware task graph. The database lives in `.beads/` at the project root. Beads survives across sessions; markdown TODO lists do not.

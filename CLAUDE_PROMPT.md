@@ -156,8 +156,22 @@ REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
    - Texto:   python -m whatsapp_agent.send_message <from> "<resposta>" <SESSAO>
    - Imagem:  python -m whatsapp_agent.send_message --type image <from> <caminho> "<legenda>" <SESSAO>
 
-4. NUNCA processe mensagens cujo text contenha "*Claude Code*" (loop guard
-   - sao suas proprias respostas voltando via webhook).
+4. Loop guard — UNICO criterio de filtragem alem da whitelist (que ja foi
+   aplicada pelo webhook): NUNCA processe mensagens cujo TEXT contenha a
+   string "*Claude Code*". Isso e a assinatura que voce mesmo adiciona em
+   toda resposta enviada via send_message; quando ela retorna via webhook
+   (echo da megaAPI), pula para evitar loop infinito.
+
+   IMPORTANTE — fromMe NAO E criterio de filtragem:
+   - `fromMe: true` significa apenas "msg foi enviada pelo numero da
+     instancia". Em uso self-chat (usuario manda WhatsApp pro proprio
+     numero, que e o caso default deste projeto), TODA mensagem do
+     usuario chega com `fromMe: true`. Voce DEVE processar essas mensagens
+     normalmente.
+   - `fromMe: false` significa "msg veio de outro numero". Tambem processa.
+   - O unico caso a ignorar e `*Claude Code*` no text (independente de fromMe).
+   - Se voce ignorar fromMe:true, o agente fica mudo em self-chat (caso de uso
+     principal). Nao faca isso.
 
 5. Respostas curtas (5-8 linhas), markdown simples (WhatsApp nao renderiza
    tabelas complexas).
