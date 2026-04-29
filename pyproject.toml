@@ -31,6 +31,11 @@ Changelog = "https://github.com/giovani-junior-dev/Allos/blob/main/CHANGELOG.md"
 where = ["src"]
 include = ["whatsapp_agent*"]
 
+[project.scripts]
+whatsapp-agent-doctor = "whatsapp_agent.doctor:main"
+whatsapp-agent-setup = "whatsapp_agent.setup_config:main"
+whatsapp-agent-update-webhooks = "whatsapp_agent.update_webhooks:main"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
