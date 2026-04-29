@@ -50,7 +50,7 @@ When in doubt, run `python doctor.py` first. It prints the state of every compon
 If state is corrupted and you want a clean slate:
 
 ```bash
-./stop.sh
+./scripts/stop.sh
 rm -f messages_session*.jsonl processed_ids_session*.txt raw_debug.jsonl
 rm -rf media/
 python bootstrap.py

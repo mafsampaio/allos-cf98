@@ -26,12 +26,12 @@ Claude Code.
 
 Windows:
 ```powershell
-.\start.ps1
+.\scripts\start.ps1
 ```
 
 Linux/Mac:
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 Script faz: para processos antigos, sobe `webhook_server.py` em background. Cloudflare Tunnel deve estar rodando como service Windows (ou Linux/macOS daemon) — ver `SETUP.md` ou `scripts/bootstrap.py` para Quick Tunnel automatico.
@@ -90,7 +90,7 @@ PRE-FLIGHT (faca AGORA, antes de qualquer outra coisa):
 
 a. Confirme webhook ativo: rode `python doctor.py`. Espere ver
    "[OK] webhook_server.py rodando em :3020" e "[OK] tunnel publico OK".
-   Se nao estiver OK, INTERROMPA e diga ao usuario rodar start.ps1/sh.
+   Se nao estiver OK, INTERROMPA e diga ao usuario rodar scripts/start.ps1 (ou scripts/start.sh).
 
 b. Inicie a ferramenta Monitor (PERSISTENTE) com:
    python monitor.py <SESSAO>
@@ -230,7 +230,7 @@ arquivos no projeto, busque na web, execute scripts.
 ## Dicas
 
 - Para encerrar o agente: feche a sessão Claude Code (Ctrl+C duas vezes)
-- Para pausar temporariamente: pare o webhook (`./stop.sh`)
+- Para pausar temporariamente: pare o webhook (`./scripts/stop.sh`)
 - Logs do webhook: `webhook.log` e `webhook.err.log`
 - Se mensagens não chegam: rode `python doctor.py`
 

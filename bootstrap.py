@@ -159,7 +159,7 @@ def main() -> int:
     print("  2. Paste: 'Leia CLAUDE_PROMPT.md e execute o prompt do passo 2. SESSAO: 1'")
     print("  3. Send a WhatsApp message to your number.")
     print("")
-    print("To stop everything: ./stop.sh   (or .\\stop.ps1)")
+    print("To stop everything: ./scripts/stop.sh   (or .\\scripts\\stop.ps1)")
     return 0
 
 

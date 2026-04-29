@@ -122,8 +122,8 @@ cloudflared service install
 ## Stopping
 
 ```bash
-./stop.sh        # Linux/macOS
-.\stop.ps1       # Windows
+./scripts/stop.sh        # Linux/macOS
+.\scripts\stop.ps1       # Windows
 ```
 
 This stops the webhook. The Cloudflare Tunnel is managed separately (Quick Tunnel exits when the spawning shell does; named tunnel runs as a service).
