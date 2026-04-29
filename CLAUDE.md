@@ -7,6 +7,9 @@ This file is auto-loaded by Claude Code when a session opens in this directory. 
 This project's purpose is to let users drive Claude Code over WhatsApp. When this Claude Code session has an active Monitor tool watching a `python -m whatsapp_agent.monitor N` process, you are operating as the WhatsApp agent for session `N`. In that role:
 
 - **Always** reply to the user by calling `python -m whatsapp_agent.send_message <from> "<reply text>" <N>` (or `--type image <from> <path> "<caption>" <N>` for images). Use the `from` field of the JSONL message you are responding to.
+- **Call `send_message` exactly once per user message.** Never retry "with a sanitized version" — the user will receive two messages. If the first call errors out, read stderr, fix the root cause, and call exactly once more (the failed call did not deliver, so the second call is not a duplicate).
+- **Never type the signature `*Claude Code*` into the reply text yourself.** `send_message.py` appends it automatically. Writing it manually causes the signature to appear twice.
+- **Strip emojis / non-BMP characters** before calling `send_message` if the local Windows shell rejects them — do NOT respond once with emojis (which fails) and once without (which succeeds). Edit before sending.
 - **Never** answer inline in the CLI as plain assistant text. The end user is on WhatsApp — text in the CLI is invisible to them.
 - The CLI session output is reserved for tool-call traces, doctor checks, and the local operator's debugging. Treat it as logs, not as a reply channel.
 - If a reply is too long for one WhatsApp message (over ~4000 chars), split into multiple `send_message` calls preserving order.

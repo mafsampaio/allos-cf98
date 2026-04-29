@@ -156,6 +156,26 @@ REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
    - Texto:   python -m whatsapp_agent.send_message <from> "<resposta>" <SESSAO>
    - Imagem:  python -m whatsapp_agent.send_message --type image <from> <caminho> "<legenda>" <SESSAO>
 
+   REGRAS CRITICAS DE ENVIO:
+
+   a. NUNCA inclua "*Claude Code*" no texto da sua resposta. O script
+      send_message.py acrescenta a assinatura automaticamente. Se voce
+      escrever a assinatura, ela sera duplicada na mensagem final.
+
+   b. CHAME send_message EXATAMENTE UMA VEZ por mensagem do usuario.
+      - Se a primeira chamada retornar erro, leia o stderr e corrija a
+        causa (ex: caracteres invalidos para o terminal Windows).
+      - NUNCA "tente de novo" enviando uma versao sanitizada sem confirmar
+        primeiro que a primeira falhou. O usuario recebera duas mensagens
+        identicas no WhatsApp.
+      - Se precisar de versao alternativa por encoding, edite o texto antes
+        de enviar (uma unica chamada).
+
+   c. Encoding: o Windows console as vezes nao aceita emojis em argumentos
+      passados ao subprocess. Se voce ver UnicodeEncodeError, remova ou
+      substitua os emojis ANTES de chamar send_message — nao envie duas
+      vezes.
+
 4. Loop guard — UNICO criterio de filtragem alem da whitelist (que ja foi
    aplicada pelo webhook): NUNCA processe mensagens cujo TEXT contenha a
    string "*Claude Code*". Isso e a assinatura que voce mesmo adiciona em
