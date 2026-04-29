@@ -27,3 +27,9 @@ def test_extract_url_returns_none_when_absent():
 def test_extract_url_strips_box_borders_and_whitespace():
     log = "|  https://abc-def-1234.trycloudflare.com  |"
     assert extract_quick_tunnel_url(log) == "https://abc-def-1234.trycloudflare.com"
+
+
+def test_main_is_callable():
+    import bootstrap
+    assert callable(bootstrap.main)
+    assert callable(bootstrap.find_cloudflared)
