@@ -21,9 +21,9 @@ OPENAI_API_KEY = ""
 
 
 def test_appends_second_session(fake_config, tmp_workdir):
-    sys.modules.pop("add_session", None)
+    sys.modules.pop("whatsapp_agent.add_session", None)
     _seed(tmp_workdir, '    "1": {"instance": "i1", "token": "t1", "phone": "111", "lid": ""},')
-    import add_session
+    from whatsapp_agent import add_session
 
     inputs = iter(["megabusiness-second", "tok2", "5511888888888"])
     with patch("builtins.input", lambda *a, **k: next(inputs)):
@@ -38,11 +38,11 @@ def test_appends_second_session(fake_config, tmp_workdir):
 
 
 def test_picks_next_free_id(fake_config, tmp_workdir):
-    sys.modules.pop("add_session", None)
+    sys.modules.pop("whatsapp_agent.add_session", None)
     _seed(tmp_workdir,
           '    "1": {"instance": "i1", "token": "t1", "phone": "111", "lid": ""},\n'
           '    "2": {"instance": "i2", "token": "t2", "phone": "222", "lid": ""},')
-    import add_session
+    from whatsapp_agent import add_session
 
     inputs = iter(["i3", "t3", "5511777777777"])
     with patch("builtins.input", lambda *a, **k: next(inputs)):
