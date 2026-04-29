@@ -117,11 +117,12 @@ def main() -> int:
     print(f"  OK: {CONFIG_PATH} criado.")
     print("")
     print("Proximos passos:")
-    print("  1. Rode start.ps1 (Windows) ou start.sh (Linux/Mac)")
-    print("  2. Cole a URL do ngrok no painel megaAPI (webhook)")
-    print("  3. Mande mensagem WhatsApp pra voce mesmo")
-    print("  4. Rode: python discover_lid.py    (descobre LID e atualiza config)")
-    print("  5. Abra Claude Code e siga CLAUDE_PROMPT.md")
+    print("  1. Rode: python scripts/bootstrap.py")
+    print("     (sobe webhook + Quick Tunnel + push megaAPI - tudo em um comando)")
+    print("  2. Mande mensagem WhatsApp pra voce mesmo")
+    print("  3. Rode: python -m whatsapp_agent.discover_lid    (descobre LID e atualiza config)")
+    print("  4. Abra Claude Code e cole na 1a msg:")
+    print("     'Leia CLAUDE_PROMPT.md e execute o prompt do passo 2. SESSAO: 1'")
     print("")
     return 0
 
