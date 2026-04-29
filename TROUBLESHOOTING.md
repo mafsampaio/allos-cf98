@@ -45,6 +45,14 @@ When in doubt, run `python -m whatsapp_agent.doctor` first. It prints the state 
 | `pytest` fails on a fresh clone | dependencies missing | `pip install -e .[dev]` (after Task 12 lands `pyproject.toml`). |
 | `pytest` fails with `ModuleNotFoundError: config` | the test fixture pre-pop is broken | check `tests/conftest.py` — fixture must inject a fake `config` module before importing the unit under test. |
 
+## Beads (bd)
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `bd: command not found` after bootstrap | install one-liner failed (network / proxy / curl missing) | re-run `bash <(curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh)` manually, or install from https://github.com/gastownhall/beads/releases. |
+| `bd init` says "already initialized" | `.beads/` already exists | expected — beads is idempotent. Use `bd ready --json` to inspect existing tasks. |
+| Tasks disappear between sessions | running `bd` from a different cwd | always run `bd` from the repo root (where `.beads/` lives), or set `BEADS_DIR=/path/to/repo/.beads`. |
+
 ## Resetting everything
 
 If state is corrupted and you want a clean slate:

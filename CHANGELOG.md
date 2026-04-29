@@ -7,6 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Beads (`bd`) integration for persistent task memory: auto-installed and initialized by `bootstrap.py`, documented in `CLAUDE.md` and `TROUBLESHOOTING.md`.
 - One-command bootstrap (`python bootstrap.py`) with Quick Tunnel.
 - Cloudflare Tunnel support replacing ngrok.
 - `update_webhooks.py` to push webhook URL to all megaAPI sessions.

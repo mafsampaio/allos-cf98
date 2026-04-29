@@ -38,6 +38,7 @@ python scripts/bootstrap.py
 5. Write `PUBLIC_WEBHOOK_URL` into `config.py`.
 6. Run `update_webhooks.py` to push the URL to every megaAPI session.
 7. Print a "READY" banner with the URL and the next step.
+8. Install beads (`bd`) and run `bd init` in the project root if not already present (skipped on Windows — install manually from the beads releases page if you want persistent task memory).
 
 ## 4. Discover your LID
 

@@ -42,6 +42,45 @@ def find_cloudflared() -> Optional[str]:
     return None
 
 
+def find_beads() -> Optional[str]:
+    """Return path to bd, or None."""
+    return shutil.which("bd")
+
+
+def ensure_beads(repo_root: Path) -> None:
+    """Install bd if missing (Linux/macOS), then run `bd init` if .beads/ does not exist."""
+    bd = find_beads()
+    if not bd:
+        if sys.platform == "win32":
+            print(
+                "[bootstrap] warning: bd (beads) not found in PATH and no Windows installer is shipped.\n"
+                "  Install manually from https://github.com/gastownhall/beads/releases\n"
+                "  Beads is optional; the agent will still run without it, but persistent task memory will be off."
+            )
+            return
+        print("[bootstrap] installing beads (bd) via official one-liner...")
+        try:
+            subprocess.check_call(
+                "curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash",
+                shell=True,
+            )
+        except subprocess.CalledProcessError:
+            print(
+                "[bootstrap] warning: bd install failed; beads task memory will be off.\n"
+                "  See https://github.com/gastownhall/beads for manual install."
+            )
+            return
+        bd = find_beads()
+        if not bd:
+            print("[bootstrap] warning: bd installed but not on PATH yet — open a new shell to use it.")
+            return
+    if (repo_root / ".beads").exists():
+        print("[bootstrap] beads already initialized (.beads/ present).")
+        return
+    print("[bootstrap] running `bd init`...")
+    subprocess.check_call([bd, "init"], cwd=str(repo_root))
+
+
 def check_python() -> None:
     if sys.version_info < (3, 8):
         sys.exit(f"ERROR: Python 3.8+ required (you have {sys.version.split()[0]}).")
@@ -121,7 +160,8 @@ def main() -> int:
     print("=" * 60)
     print("WhatsApp Claude Agent - Bootstrap")
     print("=" * 60)
-    os.chdir(Path(__file__).resolve().parent.parent)
+    repo_root = Path(__file__).resolve().parent.parent
+    os.chdir(repo_root)
     check_python()
     check_curl()
     cf = find_cloudflared()
@@ -133,6 +173,7 @@ def main() -> int:
             "  Linux:   see https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/"
         )
     ensure_config()
+    ensure_beads(repo_root)
     webhook = start_webhook()
     try:
         tunnel, url = start_quick_tunnel(cf)
@@ -153,6 +194,7 @@ def main() -> int:
     print(f"  Public URL: {url}")
     print(f"  Webhook PID: {webhook.pid}  (logs: webhook.log)")
     print(f"  Tunnel  PID: {tunnel.pid}   (logs: cloudflared.log)")
+    print(f"  Beads:       {'on' if find_beads() else 'OFF (optional, see https://github.com/gastownhall/beads)'}")
     print("")
     print("Next:")
     print("  1. Open another terminal: claude")

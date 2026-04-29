@@ -44,3 +44,26 @@ def test_find_cloudflared_returns_none(monkeypatch, tmp_path):
     monkeypatch.setattr(_shutil, "which", lambda _: None)
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     assert bootstrap.find_cloudflared() is None
+
+
+def test_find_beads_returns_none_when_missing(monkeypatch):
+    import shutil as _shutil
+    monkeypatch.setattr(_shutil, "which", lambda _: None)
+    assert bootstrap.find_beads() is None
+
+
+def test_ensure_beads_skips_when_dir_exists(monkeypatch, tmp_path):
+    import shutil as _shutil
+    fake_bd = tmp_path / "bd"
+    fake_bd.write_text("")
+    monkeypatch.setattr(_shutil, "which", lambda _: str(fake_bd))
+    (tmp_path / ".beads").mkdir()
+
+    called = {"init": False}
+
+    def fake_check_call(*args, **kwargs):
+        called["init"] = True
+
+    monkeypatch.setattr(bootstrap.subprocess, "check_call", fake_check_call)
+    bootstrap.ensure_beads(tmp_path)
+    assert called["init"] is False  # already initialized → bd init not run

@@ -60,3 +60,6 @@ ngrok_url.txt
 
 # Media files (downloaded image/audio/video)
 media/
+
+# Beads task graph (per-developer)
+.beads/

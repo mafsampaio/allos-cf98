@@ -69,6 +69,19 @@ Open one Claude Code session per WhatsApp session and paste:
 | Receive | yes | yes (Claude reads natively) | yes (Whisper, optional) | rejected |
 | Send | yes | yes (`send_message.py --type image`) | no | no |
 
+## Persistent task memory (beads)
+
+The agent uses [beads](https://github.com/gastownhall/beads) to maintain a dependency-aware task graph that survives session restarts. `bootstrap.py` installs and initializes it automatically on Linux/macOS; on Windows install the binary manually from the beads releases page.
+
+How Claude Code uses it (full rules in [CLAUDE.md](CLAUDE.md)):
+
+- `bd ready --json` to find work that has no open blockers.
+- `bd create "Title" -p 1` to log a new task.
+- `bd update <id> --claim` to atomically take ownership.
+- `bd close <id> "what was done"` to finish.
+
+The database lives in `.beads/` (gitignored).
+
 ## Repo layout
 
 ```
