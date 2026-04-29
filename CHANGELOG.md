@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-04-29
+
 ### Added
 - Beads (`bd`) integration for persistent task memory: auto-installed and initialized by `bootstrap.py`, documented in `CLAUDE.md` and `TROUBLESHOOTING.md`.
 - One-command bootstrap (`python bootstrap.py`) with Quick Tunnel.
@@ -31,5 +33,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `add_session.py` wizard, `discover_lid.py`, `media_handler.py`, `transcribe.py`.
 - 26 pytest tests.
 
-[Unreleased]: https://github.com/giovani-junior-dev/Allos/compare/v1.0-trilha1...HEAD
+[Unreleased]: https://github.com/giovani-junior-dev/Allos/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/giovani-junior-dev/Allos/releases/tag/v1.1.0
 [1.0.0-trilha1]: https://github.com/giovani-junior-dev/Allos/releases/tag/v1.0-trilha1
