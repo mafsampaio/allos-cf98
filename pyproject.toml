@@ -27,20 +27,9 @@ Homepage = "https://github.com/giovani-junior-dev/Allos"
 Issues = "https://github.com/giovani-junior-dev/Allos/issues"
 Changelog = "https://github.com/giovani-junior-dev/Allos/blob/main/CHANGELOG.md"
 
-[tool.setuptools]
-py-modules = [
-  "webhook_server",
-  "monitor",
-  "send_message",
-  "media_handler",
-  "transcribe",
-  "update_webhooks",
-  "doctor",
-  "add_session",
-  "discover_lid",
-  "setup_config",
-  "bootstrap",
-]
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["whatsapp_agent*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

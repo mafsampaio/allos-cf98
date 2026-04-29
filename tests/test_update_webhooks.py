@@ -23,7 +23,7 @@ def fake_config(monkeypatch, tmp_path):
 
 
 def test_configure_success(fake_config, monkeypatch):
-    import update_webhooks
+    from whatsapp_agent import update_webhooks
 
     captured = {}
 
@@ -44,7 +44,7 @@ def test_configure_success(fake_config, monkeypatch):
 
 
 def test_configure_failure_returns_false(fake_config, monkeypatch):
-    import update_webhooks
+    from whatsapp_agent import update_webhooks
 
     class FakeResult:
         stdout = '{"error": true, "message": "bad token"}'
