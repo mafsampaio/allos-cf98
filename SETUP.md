@@ -1,193 +1,137 @@
-# SETUP — Passo a passo (do zero)
+# Setup walkthrough
 
-Guia para alunos que nunca usaram megaAPI/ngrok/Claude Code.
+This is the slow path. If you just want to try the agent, follow the
+[README TL;DR](README.md#tldr) instead.
 
-## 1. Pré-requisitos
+## 1. Create a megaAPI account and instance
 
-### 1.1 Python
-- Windows: baixe em https://python.org → marque "Add Python to PATH"
-- Linux: `sudo apt install python3 python3-pip`
-- macOS: `brew install python3`
+1. Sign up at https://megaapi.com.br.
+2. In the dashboard, create a new instance. Note the **instance name**
+   (e.g. `megabusiness-yourname`) and the **token**.
+3. Connect a WhatsApp number to the instance — scan the QR code with
+   the WhatsApp app on the phone.
+   _If you have a screenshot of this step, drop it into `docs/images/megaapi-qr.png`
+   and reference it here._
 
-Teste: `python --version` (ou `python3 --version`) deve mostrar 3.8+
+## 2. Install dependencies
 
-### 1.2 curl
-- Já vem instalado em Windows 10+, macOS, Linux
-- Teste: `curl --version`
+| Tool | Windows | macOS | Linux |
+|------|---------|-------|-------|
+| Python 3.8+ | https://python.org or `winget install Python.Python.3.12` | `brew install python` | `apt install python3` |
+| cloudflared | `winget install Cloudflare.cloudflared` | `brew install cloudflared` | https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/ |
+| Claude Code CLI | https://docs.anthropic.com/claude-code | same | same |
 
-### 1.3 ngrok
-1. Crie conta grátis em https://dashboard.ngrok.com/signup
-2. Baixe ngrok em https://ngrok.com/download
-3. Extraia o `ngrok.exe` (Windows) ou `ngrok` (Linux/Mac) e coloque no PATH
-4. Pegue seu authtoken em https://dashboard.ngrok.com/get-started/your-authtoken
-5. Configure: `ngrok config add-authtoken SEU_TOKEN_AQUI`
-
-### 1.4 Claude Code CLI
-- Siga https://docs.anthropic.com/claude-code
-- Faça login com sua conta Anthropic
-- Teste: `claude --version`
-
-### 1.5 megaAPI
-1. Crie conta em https://megaapi.com.br
-2. Crie uma **instância** (anote o nome, ex: `megabusiness-meuagente`)
-3. Anote o **token** da instância
-4. **Conecte seu WhatsApp** escaneando o QR code da megaAPI
-5. Anote seu número no formato internacional sem `+` (ex: `5511999999999`)
-
-## 2. Instalação
+## 3. Clone and bootstrap
 
 ```bash
-git clone <repo-url> whatsapp-claude-agent
+git clone https://github.com/giovani-junior-dev/Allos.git whatsapp-claude-agent
 cd whatsapp-claude-agent
+python bootstrap.py
 ```
 
-Windows:
-```powershell
-powershell -ExecutionPolicy Bypass -File install.ps1
-```
+`bootstrap.py` will:
 
-Linux/macOS:
+1. Verify Python, curl, and cloudflared are present.
+2. Run the config wizard if `config.py` does not exist (asks for instance, token, phone, optional OpenAI key).
+3. Start `webhook_server.py` on `:3020`.
+4. Open a Cloudflare Quick Tunnel and capture the public URL.
+5. Write `PUBLIC_WEBHOOK_URL` into `config.py`.
+6. Run `update_webhooks.py` to push the URL to every megaAPI session.
+7. Print a "READY" banner with the URL and the next step.
+
+## 4. Discover your LID
+
+Send any WhatsApp message to your own number. Then run:
+
 ```bash
-chmod +x install.sh start.sh stop.sh
-./install.sh
+python discover_lid.py
 ```
 
-## 3. Configuração
+This reads `messages_session1.jsonl`, extracts the LID, and writes it back into `config.py`. Without the LID, the whitelist cannot match LID-based group messages.
 
-Abra `config.py` (criado pelo instalador) e preencha:
+## 5. Activate Claude Code
 
-```python
-CMD_TOKEN = "meutoken"   # legado/opcional - hoje whitelist sozinha basta
+Open a new terminal:
 
-SESSIONS = {
-    "1": {
-        "instance": "megabusiness-meuagente",   # nome da instancia megaAPI
-        "token":    "SEU_TOKEN_MEGAAPI",        # token da instancia
-        "phone":    "5511999999999",            # SEU numero (DDI+DDD+numero)
-        "lid":      "00000000000000",           # deixar zerado por enquanto
-    },
-}
-```
-
-## 4. Subir o servidor
-
-Windows: `.\start.ps1`
-Linux/Mac: `./start.sh`
-
-Vai mostrar algo tipo:
-```
-Webhook URL (paste into megaAPI):
-  https://abc-123.ngrok-free.app/?session=1
-```
-
-**Copie essa URL.**
-
-## 5. Configurar webhook na megaAPI
-
-1. Painel megaAPI → sua instância → **Webhook**
-2. Cole a URL completa (com `?session=1`)
-3. Salve
-
-## 6. Descobrir seu LID
-
-1. Mande qualquer mensagem do seu WhatsApp para você mesmo (self-chat)
-2. Abra `raw_debug.jsonl` no projeto
-3. Procure o campo `key.remoteJid` ou `participant`
-4. Copie o número antes de `@lid` (ex: `22540172955723@lid` → `22540172955723`)
-5. Cole em `config.py` no campo `lid`
-6. Reinicie: `.\stop.ps1` e `.\start.ps1` (ou `.sh`)
-
-## 7. Subir o agente Claude Code
-
-**Pré-requisito:** webhook + ngrok já rodando (passo 4 acima).
-Confirme com `python doctor.py` antes de prosseguir.
-
-1. Abra outro terminal, `cd` na pasta do projeto
-2. Rode `claude` (inicia Claude Code CLI)
-3. Cole o prompt completo do `CLAUDE_PROMPT.md` na primeira mensagem
-4. Claude faz pre-flight automaticamente:
-   - Roda `python doctor.py` pra confirmar webhook + ngrok
-   - Inicia ferramenta Monitor com `python monitor.py 1` (PERSISTENTE)
-   - Aguarda mensagens
-
-**O Monitor fica rodando enquanto a sessão Claude Code estiver aberta.**
-Se você fechar o Claude Code, monitor para — webhook + ngrok continuam
-rodando em background, mas mensagens recebidas ficam em fila no JSONL
-até voce reabrir Claude Code.
-
-### Multi-sessão
-
-Pra cada sessão extra (2, 3, ...), abra outra janela Claude Code separada
-e cole o prompt trocando `monitor.py 1` por `monitor.py N`. Cada sessão
-Claude Code = 1 número WhatsApp.
-
-## 8. Testar
-
-Mande mensagem WhatsApp pra você mesmo:
-```
-oi, quem é você?
-```
-
-Claude responde no WhatsApp em segundos. Resposta vem assinada `*Claude Code*`.
-
-Para slash command:
-```
-/skill-creator:skill-creator
-```
-
-## 9. Multi-sessão (opcional)
-
-Adicione segunda sessão em `config.py`:
-```python
-SESSIONS = {
-    "1": { ... },
-    "2": {
-        "instance": "megabusiness-outroagente",
-        "token":    "OUTRO_TOKEN",
-        "phone":    "5511888888888",
-        "lid":      "00000000000000",
-    },
-}
-```
-
-Webhook URL para sessão 2: `https://abc-123.ngrok-free.app/?session=2`
-
-## Troubleshooting
-
-| Problema | Solução |
-|----------|---------|
-| `config.py not found` | Rode install.ps1/sh primeiro |
-| ngrok URL não aparece | Verifique http://127.0.0.1:4040 |
-| Mensagem não chega no JSONL | Confira webhook URL no painel megaAPI + whitelist phone |
-| Claude responde mas WhatsApp não recebe | Veja log: `curl` retorna 403 → token errado |
-| Loop infinito | Confirme assinatura `*Claude Code*` está em `config.py` SIGNATURE |
-
-Mais detalhes técnicos em `PROJETO.md`.
-Roadmap de deploy 24/7: `docs/TRILHA_2_ROADMAP.md`.
-
-## 10. Multimodal (opcional)
-
-### 10.1 Receber audio com transcricao
-
-1. Crie conta em https://platform.openai.com
-2. Gere API key em https://platform.openai.com/api-keys
-3. Edite `config.py`: `OPENAI_API_KEY = "sk-..."`
-4. Reinicie webhook: `./stop.sh && ./start.sh`
-5. Mande audio no WhatsApp. Claude roda `python transcribe.py <path>` e
-   responde com base no texto transcrito.
-
-### 10.2 Receber imagens
-Funciona automaticamente. Imagem decriptada vai pra `media/sessionN/<id>.jpg`.
-Claude usa `Read` no arquivo (visao nativa) e descreve.
-
-### 10.3 Enviar imagens
 ```bash
-python send_message.py --type image 5511999999999 ./foto.jpg "minha legenda" 1
+cd whatsapp-claude-agent
+claude
 ```
 
-## 11. Adicionar nova instancia
-```bash
-python add_session.py
+In the Claude Code session, send as the first message:
+
 ```
-Configure webhook da nova: `<URL_NGROK>/?session=N`. Em outra sessao
-Claude Code: `python monitor.py N`.
+Leia CLAUDE_PROMPT.md e execute o prompt do passo 2. SESSAO: 1
+```
+
+Claude will read the prompt, run `python doctor.py`, activate the Monitor tool on `python monitor.py 1`, and start replying to incoming WhatsApp messages.
+
+## 6. Test it
+
+Send any text message to your WhatsApp number. Claude replies within seconds, signed `*Claude Code*`.
+
+## Multi-session
+
+Add another WhatsApp instance:
+
+```bash
+python add_session.py        # asks for instance/token/phone, assigns next ID
+python update_webhooks.py    # re-pushes PUBLIC_WEBHOOK_URL to all sessions
+```
+
+Open a second Claude Code session in another terminal and paste:
+
+```
+Leia CLAUDE_PROMPT.md e execute o prompt do passo 2. SESSAO: 2
+```
+
+Each Claude Code session monitors **exactly one** WhatsApp session.
+
+## Named Tunnel (production)
+
+Quick Tunnel URLs are random and regenerate on every restart. For a stable URL, switch to a named tunnel.
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create whatsapp-webhook
+cloudflared tunnel route dns whatsapp-webhook agent.your-domain.com
+```
+
+Edit `~/.cloudflared/config.yml`:
+
+```yaml
+tunnel: <tunnel-id-printed-by-create>
+credentials-file: ~/.cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: agent.your-domain.com
+    service: http://127.0.0.1:3020
+  - service: http_status:404
+```
+
+Update `config.PUBLIC_WEBHOOK_URL` to `https://agent.your-domain.com` and run `python update_webhooks.py`.
+
+Run the tunnel as a background service:
+
+```bash
+# Linux: systemd unit (sudo cloudflared service install)
+# Windows (admin PowerShell):
+cloudflared service install
+```
+
+## Stopping
+
+```bash
+./stop.sh        # Linux/macOS
+.\stop.ps1       # Windows
+```
+
+This stops the webhook. The Cloudflare Tunnel is managed separately (Quick Tunnel exits when the spawning shell does; named tunnel runs as a service).
+
+## Diagnostics
+
+```bash
+python doctor.py
+```
+
+Prints `[OK]` / `[WARN]` / `[ERRO]` for each component. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for fixes.
