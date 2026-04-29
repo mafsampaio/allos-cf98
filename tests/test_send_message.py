@@ -6,8 +6,8 @@ from unittest.mock import patch, MagicMock
 
 
 def _import():
-    sys.modules.pop("send_message", None)
-    import send_message
+    sys.modules.pop("whatsapp_agent.send_message", None)
+    from whatsapp_agent import send_message
     return send_message
 
 
@@ -19,7 +19,7 @@ def test_send_text_uses_text_endpoint(fake_config):
         captured["args"] = args
         return MagicMock(stdout='{"ok": true}', stderr="", returncode=0)
 
-    with patch("send_message.subprocess.run", side_effect=fake_run):
+    with patch("whatsapp_agent.send_message.subprocess.run", side_effect=fake_run):
         result = sm.send_text("5511888888888", "ola", "1")
 
     assert result == {"ok": True}
@@ -37,7 +37,7 @@ def test_send_image_posts_mediaBase64_with_correct_payload(fake_config, tmp_work
         captured["args"] = args
         return MagicMock(stdout='{"error": false}', stderr="", returncode=0)
 
-    with patch("send_message.subprocess.run", side_effect=fake_run):
+    with patch("whatsapp_agent.send_message.subprocess.run", side_effect=fake_run):
         result = sm.send_image("5511888888888", str(img), caption="legenda", session="1")
 
     assert result == {"error": False}
@@ -75,7 +75,7 @@ def test_send_image_detects_mime_from_extension(fake_config, tmp_workdir):
         captured["args"] = args
         return MagicMock(stdout='{"ok": true}', stderr="", returncode=0)
 
-    with patch("send_message.subprocess.run", side_effect=fake_run):
+    with patch("whatsapp_agent.send_message.subprocess.run", side_effect=fake_run):
         sm.send_image("5511888888888", str(png), session="1")
 
     body = json.loads(captured["args"][captured["args"].index("-d") + 1])
