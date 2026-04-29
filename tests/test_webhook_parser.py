@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 
 def _import_ws():
-    sys.modules.pop("webhook_server", None)
-    import webhook_server
+    sys.modules.pop("whatsapp_agent.webhook_server", None)
+    from whatsapp_agent import webhook_server
     return webhook_server
 
 
@@ -51,7 +51,7 @@ def test_image_downloaded(fake_config, tmp_workdir):
             f.write(b"X")
         return p
 
-    with patch("webhook_server.media_handler.download_media", side_effect=fake_download):
+    with patch("whatsapp_agent.webhook_server.media_handler.download_media", side_effect=fake_download):
         msg = handler._parse(payload, session="1")
 
     assert msg["media_type"] == "imageMessage"
@@ -85,7 +85,7 @@ def test_audio_no_autotranscribe(fake_config, tmp_workdir):
             f.write(b"X")
         return p
 
-    with patch("webhook_server.media_handler.download_media", side_effect=fake_download):
+    with patch("whatsapp_agent.webhook_server.media_handler.download_media", side_effect=fake_download):
         msg = handler._parse(payload, session="1")
 
     assert msg["media_type"] == "audioMessage"
@@ -108,7 +108,7 @@ def test_image_without_caption_uses_placeholder(fake_config, tmp_workdir):
         },
         "messageTimestamp": 1234,
     }
-    with patch("webhook_server.media_handler.download_media",
+    with patch("whatsapp_agent.webhook_server.media_handler.download_media",
                return_value="media/session1/IMG2.png"):
         msg = handler._parse(payload, session="1")
     assert msg["text"] == "[image]"
