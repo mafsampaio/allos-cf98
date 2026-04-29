@@ -33,3 +33,11 @@ def test_main_is_callable():
     import bootstrap
     assert callable(bootstrap.main)
     assert callable(bootstrap.find_cloudflared)
+
+
+def test_find_cloudflared_returns_none(monkeypatch, tmp_path):
+    import shutil as _shutil
+    import bootstrap
+    monkeypatch.setattr(_shutil, "which", lambda _: None)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    assert bootstrap.find_cloudflared() is None

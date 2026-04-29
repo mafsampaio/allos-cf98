@@ -103,15 +103,11 @@ def start_quick_tunnel(cloudflared_path: str) -> tuple:
 def write_public_url(url: str) -> None:
     """Update config.PUBLIC_WEBHOOK_URL in-place (or append if missing)."""
     text = Path("config.py").read_text(encoding="utf-8")
-    if "PUBLIC_WEBHOOK_URL" in text:
-        new = re.sub(
-            r'PUBLIC_WEBHOOK_URL\s*=\s*".*?"',
-            f'PUBLIC_WEBHOOK_URL = "{url}"',
-            text,
-        )
-    else:
-        new = text + f'\n\nPUBLIC_WEBHOOK_URL = "{url}"\n'
-    Path("config.py").write_text(new, encoding="utf-8")
+    pat = re.compile(r'^PUBLIC_WEBHOOK_URL\s*=\s*[\'"][^\'"]*[\'"]', re.M)
+    text, n = pat.subn(f'PUBLIC_WEBHOOK_URL = "{url}"', text)
+    if n == 0:
+        text += f'\n\nPUBLIC_WEBHOOK_URL = "{url}"\n'
+    Path("config.py").write_text(text, encoding="utf-8")
 
 
 def push_webhooks() -> None:
@@ -125,6 +121,7 @@ def main() -> int:
     print("=" * 60)
     print("WhatsApp Claude Agent - Bootstrap")
     print("=" * 60)
+    os.chdir(Path(__file__).resolve().parent)
     check_python()
     check_curl()
     cf = find_cloudflared()
@@ -137,9 +134,18 @@ def main() -> int:
         )
     ensure_config()
     webhook = start_webhook()
-    tunnel, url = start_quick_tunnel(cf)
-    write_public_url(url)
-    push_webhooks()
+    try:
+        tunnel, url = start_quick_tunnel(cf)
+    except SystemExit:
+        webhook.terminate()
+        raise
+    try:
+        write_public_url(url)
+        push_webhooks()
+    except SystemExit:
+        webhook.terminate()
+        tunnel.terminate()
+        raise
     print("")
     print("=" * 60)
     print("READY")
