@@ -19,9 +19,12 @@ Write-Host "=== WhatsApp Claude Agent - Start ===" -ForegroundColor Cyan
 Write-Host ""
 
 # --- Kill old webhook ---
-Write-Host "[1/2] Cleaning old webhook..."
+Write-Host "[1/2] Cleaning old webhook + legacy ngrok..."
 Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='py.exe'" | Where-Object {
     $_.CommandLine -like "*webhook_server.py*"
+} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Get-CimInstance Win32_Process -Filter "Name='ngrok.exe'" | Where-Object {
+    $_.CommandLine -like "*http 3020*"
 } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 1
 

@@ -21,8 +21,9 @@ echo "=== WhatsApp Claude Agent - Start ==="
 echo ""
 
 # --- Kill old webhook ---
-echo "[1/2] Cleaning old webhook..."
+echo "[1/2] Cleaning old webhook + legacy ngrok..."
 pkill -f "python.*webhook_server.py" 2>/dev/null || true
+pkill -f "ngrok http 3020"           2>/dev/null || true
 sleep 1
 
 # --- Start webhook server ---

@@ -16,9 +16,9 @@ vai monitorar.)
 Claude Code abre o arquivo via Read tool, segue o pre-flight e ativa
 o Monitor. Funciona idêntico ao copy-paste do bloco completo.
 
-## Pre-requisito — webhook + ngrok rodando (FORA do Claude Code)
+## Pre-requisito — webhook + Cloudflare Tunnel rodando (FORA do Claude Code)
 
-Antes de abrir Claude Code, suba o servidor webhook + tunel ngrok.
+Antes de abrir Claude Code, suba o servidor webhook + Cloudflare Tunnel.
 Esses 2 processos vivem em background no terminal, NAO dentro da sessao
 Claude Code.
 
@@ -34,8 +34,7 @@ Linux/Mac:
 ./start.sh
 ```
 
-Script faz: para processos antigos, sobe `webhook_server.py` em background,
-sobe `ngrok http 3020` em background, imprime URL publica.
+Script faz: para processos antigos, sobe `webhook_server.py` em background. Cloudflare Tunnel deve estar rodando como service Windows (ou Linux/macOS daemon) — ver `SETUP.md` ou `scripts/bootstrap.py` para Quick Tunnel automatico.
 
 ### Opcao B — Localhost dev (manual, 2 terminais)
 
@@ -46,13 +45,12 @@ Terminal 1 (webhook):
 python webhook_server.py
 ```
 
-Terminal 2 (ngrok):
+Terminal 2 (Cloudflare Quick Tunnel):
 ```bash
-ngrok http 3020
+cloudflared tunnel --url http://127.0.0.1:3020
 ```
 
-ngrok mostra URL tipo `https://abc-123.ngrok-free.app` na tela. Cole no
-painel megaAPI (webhook), com sufixo `?session=1` (ou ?session=2 etc).
+cloudflared imprime uma URL tipo `https://abc-123.trycloudflare.com`. Atualize `config.PUBLIC_WEBHOOK_URL` e rode `python update_webhooks.py` para empurrar para a megaAPI.
 
 ### Opcao C — VPS producao (24/7)
 
@@ -63,7 +61,7 @@ Coberto na Trilha 2 (em desenvolvimento): Cloudflare Tunnel + systemd.
 ```bash
 python doctor.py
 ```
-Deve mostrar webhook :3020 OK + ngrok URL OK + megaAPI OK.
+Deve mostrar webhook :3020 OK + tunnel publico OK + megaAPI OK.
 
 ## Passo 1 — Abra Claude Code na pasta do projeto
 
@@ -241,7 +239,7 @@ arquivos no projeto, busque na web, execute scripts.
 Para conectar mais um numero WhatsApp ao mesmo deployment:
 
 1. `python add_session.py` (wizard pergunta instance/token/phone)
-2. No painel megaAPI da nova instancia, configure webhook como `<URL_NGROK>/?session=N`
+2. No painel megaAPI da nova instancia, configure webhook como `<URL_PUBLICA>/?session=N` (use `config.PUBLIC_WEBHOOK_URL`; depois rode `python update_webhooks.py`)
 3. Mande 1 msg pra voce mesmo no novo numero
 4. `python discover_lid.py N`
 5. Em outra sessao Claude Code: cole o mesmo prompt acima trocando

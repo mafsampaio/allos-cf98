@@ -22,15 +22,22 @@ def configure(session_id: str, instance: str, token: str) -> bool:
         }
     })
     endpoint = f"{MEGA_HOST}/rest/webhook/{instance}/configWebhook"
-    result = subprocess.run(
-        [
-            "curl", "-s", "-X", "POST", endpoint,
-            "-H", f"Authorization: Bearer {token}",
-            "-H", "Content-Type: application/json",
-            "-d", body,
-        ],
-        capture_output=True, text=True, timeout=15,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "curl", "-s", "-X", "POST", endpoint,
+                "-H", f"Authorization: Bearer {token}",
+                "-H", "Content-Type: application/json",
+                "-d", body,
+            ],
+            capture_output=True, text=True, timeout=15,
+        )
+    except subprocess.TimeoutExpired:
+        print(f"  [ERRO] sessao {session_id}: timeout (>15s) em {endpoint}")
+        return False
+    except OSError as e:
+        print(f"  [ERRO] sessao {session_id}: falha ao executar curl ({e})")
+        return False
     out = result.stdout.strip()
     try:
         data = json.loads(out)
