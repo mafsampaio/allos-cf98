@@ -36,11 +36,11 @@ def check_curl():
     return False
 
 
-def check_ngrok():
-    if shutil.which("ngrok"):
-        ok("ngrok disponivel")
+def check_cloudflared():
+    if shutil.which("cloudflared"):
+        ok("cloudflared disponivel")
         return True
-    warn("ngrok nao encontrado no PATH (necessario pra start.ps1/sh)")
+    warn("cloudflared nao encontrado no PATH (winget install Cloudflare.cloudflared)")
     return False
 
 
@@ -87,19 +87,30 @@ def check_webhook_port():
         s.close()
 
 
-def check_ngrok_url():
+def check_public_tunnel():
     try:
-        with urlopen("http://127.0.0.1:4040/api/tunnels", timeout=2) as r:
-            data = json.loads(r.read())
-        tunnels = data.get("tunnels", [])
-        if not tunnels:
-            warn("ngrok rodando mas sem tunnels ativos")
-            return None
-        url = tunnels[0]["public_url"]
-        ok(f"ngrok URL publica: {url}")
-        return url
+        from config import PUBLIC_WEBHOOK_URL
     except Exception:
-        warn("ngrok api (4040) nao responde. ngrok rodando?")
+        err("config.PUBLIC_WEBHOOK_URL ausente")
+        return None
+    if not PUBLIC_WEBHOOK_URL:
+        err("config.PUBLIC_WEBHOOK_URL vazio")
+        return None
+    try:
+        result = subprocess.run(
+            ["curl", "-s", "-o", os.devnull, "-w", "%{http_code}",
+             "-X", "POST", "-H", "Content-Type: application/json",
+             "-d", "{}", PUBLIC_WEBHOOK_URL + "/?session=1"],
+            capture_output=True, text=True, timeout=10,
+        )
+        code = result.stdout.strip()
+        if code == "200":
+            ok(f"tunnel publico OK: {PUBLIC_WEBHOOK_URL} (HTTP 200)")
+            return PUBLIC_WEBHOOK_URL
+        warn(f"tunnel respondeu HTTP {code} para {PUBLIC_WEBHOOK_URL}")
+        return None
+    except Exception as e:
+        err(f"tunnel inalcancavel ({PUBLIC_WEBHOOK_URL}): {e}")
         return None
 
 
@@ -182,14 +193,14 @@ def main():
     print("[ENV]")
     check_python()
     check_curl()
-    check_ngrok()
+    check_cloudflared()
     print("")
     print("[CONFIG]")
     config_ok, sessions = check_config()
     print("")
     print("[RUNTIME]")
     check_webhook_port()
-    check_ngrok_url()
+    check_public_tunnel()
     print("")
     print("[MEGAAPI]")
     check_megaapi(sessions)

@@ -2,6 +2,10 @@
 # ============================================================
 # WhatsApp Claude Agent — Linux/macOS starter
 # ============================================================
+# Cloudflare Tunnel deve rodar como servico/daemon separado
+# (cloudflared service install). Este script so cuida do webhook.
+# URL publica vem de config.PUBLIC_WEBHOOK_URL.
+# ============================================================
 
 set -e
 
@@ -10,45 +14,41 @@ if [ ! -f "config.py" ]; then
     exit 1
 fi
 
+PUBLIC_URL=$(python3 -c "from config import PUBLIC_WEBHOOK_URL; print(PUBLIC_WEBHOOK_URL)" 2>/dev/null || echo "")
+
 echo ""
 echo "=== WhatsApp Claude Agent - Start ==="
 echo ""
 
-# --- Kill old processes ---
-echo "[1/3] Cleaning old processes..."
+# --- Kill old webhook ---
+echo "[1/2] Cleaning old webhook..."
 pkill -f "python.*webhook_server.py" 2>/dev/null || true
-pkill -f "ngrok http 3020"           2>/dev/null || true
 sleep 1
 
 # --- Start webhook server ---
-echo "[2/3] Starting webhook server on :3020..."
+echo "[2/2] Starting webhook server on :3020..."
 nohup python3 webhook_server.py > webhook.log 2> webhook.err.log &
 echo $! > .webhook.pid
 sleep 2
-
-# --- Start ngrok ---
-echo "[3/3] Starting ngrok tunnel..."
-nohup ngrok http 3020 > ngrok.log 2>&1 &
-echo $! > .ngrok.pid
-sleep 3
-
-# --- Fetch ngrok URL ---
-PUBLIC_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | python3 -c "import sys,json; print(json.load(sys.stdin)['tunnels'][0]['public_url'])" 2>/dev/null || echo "")
 
 echo ""
 echo "=== READY ==="
 echo ""
 if [ -n "$PUBLIC_URL" ]; then
-    echo "Webhook URL (paste into megaAPI):"
+    echo "Webhook URL publica (config.PUBLIC_WEBHOOK_URL):"
     echo "  $PUBLIC_URL/?session=1"
+    echo "  $PUBLIC_URL/?session=2"
 else
-    echo "WARNING: Could not fetch ngrok URL. Check: http://127.0.0.1:4040"
+    echo "WARNING: config.PUBLIC_WEBHOOK_URL vazio."
 fi
 echo ""
-echo "For session 2, 3, ...: append ?session=N"
+echo "Cloudflare Tunnel: rode 'cloudflared service install' uma vez"
+echo "  ou: cloudflared tunnel --config ~/.cloudflared/config.yml run whatsapp-webhook"
+echo ""
+echo "Apos alterar PUBLIC_WEBHOOK_URL: python3 update_webhooks.py"
 echo ""
 echo "Next: in Claude Code session, set Monitor to:"
 echo "  python3 monitor.py 1"
 echo ""
-echo "Logs: webhook.log / webhook.err.log / ngrok.log"
+echo "Logs: webhook.log / webhook.err.log"
 echo "Stop: ./stop.sh"

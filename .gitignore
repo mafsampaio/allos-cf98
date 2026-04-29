@@ -35,10 +35,16 @@ docs/superpowers/
 *.log
 logs/
 
-# ngrok
+# Tunnel runtime (ngrok legacy + cloudflared)
 ngrok.exe
 ngrok
 .ngrok2/
+ngrok_url.txt
+.pid.ngrok
+.pid.cloudflared
+.pid.webhook
+.pid.monitor*
+.webhook.pid
 
 # Media files (downloaded image/audio/video)
 media/

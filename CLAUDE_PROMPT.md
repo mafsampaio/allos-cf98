@@ -2,6 +2,20 @@
 
 Como ativar o agente WhatsApp dentro do Claude Code.
 
+## Atalho — ativar com 1 frase
+
+Em vez de copiar o bloco do passo 2, mande na 1ª mensagem da sessão:
+
+```
+Leia CLAUDE_PROMPT.md e execute o prompt do passo 2. SESSAO: <N>
+```
+
+(Troque `SESSAO: <N>` pelo número da sessão WhatsApp que esta Claude Code
+vai monitorar.)
+
+Claude Code abre o arquivo via Read tool, segue o pre-flight e ativa
+o Monitor. Funciona idêntico ao copy-paste do bloco completo.
+
 ## Pre-requisito — webhook + ngrok rodando (FORA do Claude Code)
 
 Antes de abrir Claude Code, suba o servidor webhook + tunel ngrok.
@@ -60,25 +74,46 @@ claude
 
 ## Passo 2 — Cole este prompt no Claude Code
 
-Copie o bloco abaixo INTEIRO e cole na primeira mensagem da sessão Claude Code:
+Copie o bloco abaixo INTEIRO e cole na primeira mensagem da sessão Claude Code.
+**IMPORTANTE:** indique no fim qual sessão WhatsApp esta Claude Code vai monitorar
+(ex: "sessao 1", "sessao 2"). Cada Claude Code session = 1 sessão WhatsApp.
 
 ```
 Voce e um agente WhatsApp multimodal. Sua tarefa:
 
+CONTEXTO DESTA CLAUDE SESSION:
+- O usuario informa abaixo qual sessao WhatsApp esta Claude Code vai
+  monitorar. Procure no fim deste prompt um marcador "SESSAO: <N>".
+  Ex: "SESSAO: 1" significa monitor.py 1, jsonl messages_session1.jsonl.
+- Se o usuario nao informou, PERGUNTE antes de prosseguir.
+- Use esse <N> em TODOS os comandos abaixo no lugar de <SESSAO>.
+
 PRE-FLIGHT (faca AGORA, antes de qualquer outra coisa):
 
 a. Confirme webhook ativo: rode `python doctor.py`. Espere ver
-   "[OK] webhook_server.py rodando em :3020" e "[OK] ngrok URL publica".
+   "[OK] webhook_server.py rodando em :3020" e "[OK] tunnel publico OK".
    Se nao estiver OK, INTERROMPA e diga ao usuario rodar start.ps1/sh.
 
 b. Inicie a ferramenta Monitor (PERSISTENTE) com:
-   python monitor.py 1
+   python monitor.py <SESSAO>
    Sem isso voce NAO recebe mensagens. Mensagens aparecem como linhas
    JSON nas notificacoes do Monitor.
 
-c. (Multi-sessao) Repita o Monitor pra cada sessao adicional:
-   python monitor.py 2, python monitor.py 3, etc.
-   Uma chamada Monitor separada por sessao.
+   REGRA OBRIGATORIA: ANTES de chamar a ferramenta Monitor, anuncie
+   no chat (texto visivel ao usuario) qual comando vai rodar e em qual
+   sessao WhatsApp, e rode `ps -ef | grep "monitor.py <SESSAO>" | grep -v grep`
+   via Bash para confirmar que NAO existe outro monitor.py orfao
+   competindo pelo mesmo JSONL/processed_ids. Se houver, mate o orfao
+   antes de subir o seu.
+
+   PROIBIDO: rodar `python monitor.py <SESSAO>` via Bash com `&`/nohup/
+   run_in_background. Output stdout precisa cair no contexto desta
+   sessao Claude Code via ferramenta Monitor — qualquer outro modo
+   engole as mensagens (marca processed_ids sem ninguem consumir).
+
+c. (Multi-sessao) Esta Claude Code monitora APENAS <SESSAO>. Para outra
+   sessao WhatsApp, abra OUTRA Claude Code session e cole o mesmo
+   prompt com "SESSAO: <outro N>".
 
 REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
 
@@ -119,9 +154,9 @@ REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
 
    e. Texto puro: trate normalmente.
 
-3. Resposta:
-   - Texto:   python send_message.py <from> "<resposta>" 1
-   - Imagem:  python send_message.py --type image <from> <caminho> "<legenda>" 1
+3. Resposta (use SEMPRE <SESSAO> no ultimo argumento):
+   - Texto:   python send_message.py <from> "<resposta>" <SESSAO>
+   - Imagem:  python send_message.py --type image <from> <caminho> "<legenda>" <SESSAO>
 
 4. NUNCA processe mensagens cujo text contenha "*Claude Code*" (loop guard
    - sao suas proprias respostas voltando via webhook).
@@ -130,10 +165,15 @@ REGRAS DE PROCESSAMENTO (depois que Monitor estiver ativo):
    tabelas complexas).
 
 6. Em erro:
-   python send_message.py <from> "Erro: <descricao>. Tente reformular." 1
+   python send_message.py <from> "Erro: <descricao>. Tente reformular." <SESSAO>
 
 Comece executando o PRE-FLIGHT agora (a, b, c).
+
+SESSAO: 1
 ```
+
+> Troque `SESSAO: 1` por `SESSAO: 2` (ou outro N) ao colar o prompt em
+> outra Claude Code session que vai monitorar outra sessao WhatsApp.
 
 ## Passo 3 — Teste
 
@@ -155,9 +195,11 @@ dispara o agente. Sem prefixo obrigatorio.
 ## Multi-sessão
 
 Para cada sessão extra (`2`, `3`, ...), abra uma sessão Claude Code
-separada e troque o número no prompt:
-- Monitor: `python monitor.py 2`
-- Send: `python send_message.py <from> "<resposta>" 2`
+separada e troque APENAS a linha `SESSAO: <N>` no fim do prompt:
+- Sessão 2: `SESSAO: 2` (Claude usa `monitor.py 2` e `send_message.py ... 2`)
+- Sessão 3: `SESSAO: 3`
+
+Não precisa editar mais nada — o prompt usa `<SESSAO>` como placeholder.
 
 ## Variações do prompt
 
@@ -203,6 +245,6 @@ Para conectar mais um numero WhatsApp ao mesmo deployment:
 3. Mande 1 msg pra voce mesmo no novo numero
 4. `python discover_lid.py N`
 5. Em outra sessao Claude Code: cole o mesmo prompt acima trocando
-   `monitor.py 1` por `monitor.py N` e `... 1` por `... N` no send.
+   apenas a linha `SESSAO: 1` por `SESSAO: N` no fim do bloco.
 
 Cada sessao Claude Code = 1 numero = 1 instancia. Sessoes independentes.

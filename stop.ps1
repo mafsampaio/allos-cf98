@@ -1,10 +1,8 @@
-# Stops webhook server + ngrok
+# Stops webhook server (Cloudflare Tunnel runs as Windows service separately)
 $ErrorActionPreference = "SilentlyContinue"
 
-Write-Host "Stopping webhook + ngrok..."
-Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*python*" } | ForEach-Object {
-    $cmd = (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)").CommandLine
-    if ($cmd -like "*webhook_server.py*") { Stop-Process -Id $_.Id -Force }
-}
-Get-Process ngrok -ErrorAction SilentlyContinue | Stop-Process -Force
+Write-Host "Stopping webhook..."
+Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='py.exe'" | Where-Object {
+    $_.CommandLine -like "*webhook_server.py*"
+} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 Write-Host "Stopped."

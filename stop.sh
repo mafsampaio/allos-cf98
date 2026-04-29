@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Stops webhook server + ngrok
-echo "Stopping webhook + ngrok..."
+# Stops webhook server (tunnel roda como service separado)
+echo "Stopping webhook..."
 pkill -f "python.*webhook_server.py" 2>/dev/null || true
-pkill -f "ngrok http 3020"           2>/dev/null || true
-rm -f .webhook.pid .ngrok.pid
+rm -f .webhook.pid
 echo "Stopped."

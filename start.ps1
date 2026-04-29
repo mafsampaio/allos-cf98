@@ -1,8 +1,8 @@
 # ============================================================
 # WhatsApp Claude Agent — Windows starter
 # ============================================================
-# Starts webhook_server.py and ngrok tunnel in background.
-# Prints the public URL to paste into megaAPI webhook config.
+# Cloudflare Tunnel roda como Windows service (cloudflared service install).
+# Este script so cuida do webhook. URL vem de config.PUBLIC_WEBHOOK_URL.
 # ============================================================
 
 $ErrorActionPreference = "Stop"
@@ -12,43 +12,42 @@ if (-Not (Test-Path "config.py")) {
     exit 1
 }
 
+$publicUrl = (& py -c "from config import PUBLIC_WEBHOOK_URL; print(PUBLIC_WEBHOOK_URL)" 2>$null)
+
 Write-Host ""
 Write-Host "=== WhatsApp Claude Agent - Start ===" -ForegroundColor Cyan
 Write-Host ""
 
-# --- Kill old processes ---
-Write-Host "[1/3] Cleaning old processes..."
-Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like "*webhook*" } | Stop-Process -Force -ErrorAction SilentlyContinue
-Get-Process ngrok  -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+# --- Kill old webhook ---
+Write-Host "[1/2] Cleaning old webhook..."
+Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='py.exe'" | Where-Object {
+    $_.CommandLine -like "*webhook_server.py*"
+} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 1
 
 # --- Start webhook server (background) ---
-Write-Host "[2/3] Starting webhook server on :3020..."
+Write-Host "[2/2] Starting webhook server on :3020..."
 Start-Process -FilePath "python" -ArgumentList "webhook_server.py" -WindowStyle Hidden -RedirectStandardOutput "webhook.log" -RedirectStandardError "webhook.err.log"
 Start-Sleep -Seconds 2
 
-# --- Start ngrok (background) ---
-Write-Host "[3/3] Starting ngrok tunnel..."
-Start-Process -FilePath "ngrok" -ArgumentList "http", "3020" -WindowStyle Hidden
-Start-Sleep -Seconds 3
-
-# --- Fetch ngrok URL via local API ---
-try {
-    $tunnels = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-    $publicUrl = $tunnels.tunnels[0].public_url
-    Write-Host ""
-    Write-Host "=== READY ===" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Webhook URL (paste into megaAPI):" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "=== READY ===" -ForegroundColor Green
+Write-Host ""
+if ($publicUrl) {
+    Write-Host "Webhook URL publica (config.PUBLIC_WEBHOOK_URL):" -ForegroundColor Cyan
     Write-Host "  $publicUrl/?session=1" -ForegroundColor White
-    Write-Host ""
-    Write-Host "For session 2, 3, ...: append ?session=N"
-    Write-Host ""
-    Write-Host "Next: in Claude Code session, set Monitor to:"
-    Write-Host "  python monitor.py 1" -ForegroundColor White
-    Write-Host ""
-    Write-Host "Logs: webhook.log / webhook.err.log"
-    Write-Host "Stop: .\stop.ps1"
-} catch {
-    Write-Host "WARNING: Could not fetch ngrok URL. Check: http://127.0.0.1:4040" -ForegroundColor Yellow
+    Write-Host "  $publicUrl/?session=2" -ForegroundColor White
+} else {
+    Write-Host "WARNING: config.PUBLIC_WEBHOOK_URL vazio." -ForegroundColor Yellow
 }
+Write-Host ""
+Write-Host "Cloudflare Tunnel: instale como servico uma vez:"
+Write-Host "  cloudflared service install" -ForegroundColor White
+Write-Host ""
+Write-Host "Apos alterar PUBLIC_WEBHOOK_URL: python update_webhooks.py" -ForegroundColor White
+Write-Host ""
+Write-Host "Next: in Claude Code session, set Monitor to:"
+Write-Host "  python monitor.py 1" -ForegroundColor White
+Write-Host ""
+Write-Host "Logs: webhook.log / webhook.err.log"
+Write-Host "Stop: .\stop.ps1"
