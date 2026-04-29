@@ -91,3 +91,30 @@ def test_send_image_rejects_oversized_file(fake_config, tmp_workdir, monkeypatch
     result = sm.send_image("5511888888888", str(big), session="1")
     assert "error" in result
     assert "too large" in result["error"].lower()
+
+
+def test_send_text_strips_pre_existing_signature(fake_config):
+    sm = _import()
+    captured = {}
+    def fake_run(args, **kw):
+        captured["args"] = args
+        return MagicMock(stdout='{"ok": true}', stderr="", returncode=0)
+    with patch("whatsapp_agent.send_message.subprocess.run", side_effect=fake_run):
+        sm.send_text("5511888888888", "Tudo certo. *Claude Code*", "1")
+    body = json.loads(captured["args"][captured["args"].index("-d") + 1])
+    text = body["messageData"]["text"]
+    assert text.count("*Claude Code*") == 1, f"Signature deve aparecer 1x, veio: {text!r}"
+    assert text.startswith("Tudo certo.")
+
+
+def test_send_text_appends_signature_when_missing(fake_config):
+    sm = _import()
+    captured = {}
+    def fake_run(args, **kw):
+        captured["args"] = args
+        return MagicMock(stdout='{"ok": true}', stderr="", returncode=0)
+    with patch("whatsapp_agent.send_message.subprocess.run", side_effect=fake_run):
+        sm.send_text("5511888888888", "ola", "1")
+    body = json.loads(captured["args"][captured["args"].index("-d") + 1])
+    text = body["messageData"]["text"]
+    assert text.count("*Claude Code*") == 1

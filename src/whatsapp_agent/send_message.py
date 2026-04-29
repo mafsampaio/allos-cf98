@@ -51,10 +51,23 @@ def _curl_json(url: str, payload_json: str, token: str) -> dict:
         return {"error": result.stderr or result.stdout}
 
 
+def _strip_signature(text: str) -> str:
+    """Remove any pre-existing SIGNATURE the model may have written into the text.
+
+    Idempotent: send_text and send_image always append SIGNATURE exactly once,
+    even if the agent already typed it into the body.
+    """
+    if not text:
+        return text
+    cleaned = text.replace(SIGNATURE, "")
+    return cleaned.rstrip()
+
+
 def send_text(phone: str, text: str, session: str = "1") -> dict:
     cfg = SESSIONS.get(session, SESSIONS["1"])
     url = TEXT_ENDPOINT.format(host=MEGA_HOST, instance=cfg["instance"])
-    full_text = f"{text}\n\n{SIGNATURE}"
+    body = _strip_signature(text)
+    full_text = f"{body}\n\n{SIGNATURE}" if body else SIGNATURE
     payload = json.dumps({
         "messageData": {"to": phone, "text": full_text, "linkPreview": False}
     })
@@ -84,7 +97,8 @@ def send_image(phone: str, image_path: str, caption: str = "", session: str = "1
         b64 = base64.b64encode(f.read()).decode("ascii")
 
     mime = _detect_mime(image_path)
-    full_caption = (f"{caption}\n\n{SIGNATURE}" if caption else SIGNATURE).strip()
+    body = _strip_signature(caption)
+    full_caption = (f"{body}\n\n{SIGNATURE}" if body else SIGNATURE).strip()
 
     payload = json.dumps({
         "messageData": {
