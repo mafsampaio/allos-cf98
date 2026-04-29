@@ -5,10 +5,10 @@ from unittest.mock import patch
 def test_writes_config_with_openai_key(fake_config, tmp_workdir):
     # delete the seeded config so wizard writes fresh
     import sys
-    sys.modules.pop("setup_config", None)
+    sys.modules.pop("whatsapp_agent.setup_config", None)
     (tmp_workdir / "config.py").unlink()
 
-    import setup_config
+    from whatsapp_agent import setup_config
 
     inputs = iter([
         "meutoken",
@@ -29,9 +29,9 @@ def test_writes_config_with_openai_key(fake_config, tmp_workdir):
 
 def test_blank_openai_key_allowed(fake_config, tmp_workdir):
     import sys
-    sys.modules.pop("setup_config", None)
+    sys.modules.pop("whatsapp_agent.setup_config", None)
     (tmp_workdir / "config.py").unlink()
-    import setup_config
+    from whatsapp_agent import setup_config
 
     inputs = iter([
         "meutoken",
