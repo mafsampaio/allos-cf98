@@ -84,9 +84,11 @@ PASSO 5 — Configurar config.py
     - OPENAI_API_KEY  (opcional, so pra audio)
 - NAO abra config.py com cat. NAO mostre tokens em chat. Apenas instrua o
   usuario a abrir no editor preferido (notepad, code, vim).
-- Pergunte se ele ja tem credencial megaAPI. Se nao, aponte
-  https://megaapi.com.br e diga para criar uma instancia primeiro,
-  voltar com instance_key + instance_token + numero WhatsApp em mao.
+- Pergunte se ele ja tem credencial do gateway WhatsApp (megaAPI por
+  padrao, em https://megaapi.io, ou qualquer backend megaAPI-compativel —
+  ver docs/API_CONTRACT.md). Se nao tiver, aponte o site do gateway,
+  pede pra criar uma instancia, e volte com host + instance_key +
+  instance_token + numero WhatsApp em mao.
 
 PASSO 6 — Rodar bootstrap
 - Quando o usuario confirmar que config.py esta preenchido, rode:
@@ -130,8 +132,9 @@ Comece pelo PASSO 0 agora.
 - Em Windows, recomenda-se Git Bash ou PowerShell (ambos funcionam).
 - Permissoes admin podem ser necessarias para `winget`/`brew`/`apt` —
   Claude vai pausar e pedir o usuario rodar manualmente quando preciso.
-- A megaAPI exige conta criada previamente (https://megaapi.com.br).
-  O instalador NAO automatiza isso — usuario precisa ter credenciais
-  em mao antes de rodar PASSO 5.
+- O gateway WhatsApp (megaAPI em https://megaapi.io por padrao, ou
+  qualquer backend compativel) exige conta criada previamente. O
+  instalador NAO automatiza isso — usuario precisa ter credenciais em
+  mao antes de rodar PASSO 5.
 - Para Trilha 2 (VPS 24/7) o fluxo e diferente — ver
   `docs/plans/2026-04-28-trilha-2-vps-deploy.md`.

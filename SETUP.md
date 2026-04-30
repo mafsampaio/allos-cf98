@@ -5,7 +5,7 @@ This is the slow path. If you just want to try the agent, follow the
 
 ## 1. Create a megaAPI account and instance
 
-1. Sign up at https://megaapi.com.br.
+1. Sign up at https://megaapi.io.
 2. In the dashboard, create a new instance. Note the **instance name**
    (e.g. `megabusiness-yourname`) and the **token**.
 3. Connect a WhatsApp number to the instance — scan the QR code with

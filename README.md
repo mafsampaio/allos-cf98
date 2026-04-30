@@ -1,8 +1,14 @@
-# WhatsApp Claude Agent
+# Allos — WhatsApp Claude Agent
 
-Self-hosted WhatsApp agent that uses **Claude Code CLI** as the LLM engine
-(no extra API key for the LLM itself). Receives WhatsApp messages via the
-[megaAPI](https://megaapi.com.br) webhook and replies through Claude Code.
+Allos is a self-hosted WhatsApp agent that uses **Claude Code CLI** as the LLM
+engine (no extra API key for the LLM itself). It receives WhatsApp messages
+through an HTTP gateway and replies via Claude Code.
+
+The reference WhatsApp gateway is [megaAPI](https://megaapi.io). Allos is built
+to its request/response shape — but the host URL is configurable, and any
+backend that mirrors the contract documented in
+[`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) works as a drop-in replacement.
+See [Swapping the WhatsApp gateway](#swapping-the-whatsapp-gateway) below.
 
 [![CI](https://github.com/giovani-junior-dev/Allos/actions/workflows/ci.yml/badge.svg)](https://github.com/giovani-junior-dev/Allos/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -10,18 +16,22 @@ Self-hosted WhatsApp agent that uses **Claude Code CLI** as the LLM engine
 ## TL;DR
 
 ```bash
-git clone https://github.com/giovani-junior-dev/Allos.git whatsapp-claude-agent
-cd whatsapp-claude-agent
+git clone https://github.com/giovani-junior-dev/Allos.git allos
+cd allos
 python scripts/bootstrap.py
 ```
 
-`scripts/bootstrap.py` runs the config wizard, starts the webhook server, opens a
-Cloudflare Quick Tunnel, and pushes the public URL to your megaAPI session.
+`scripts/bootstrap.py` runs the config wizard, starts the webhook server, opens
+a Cloudflare Quick Tunnel, and pushes the public URL to your gateway session.
 Then you open Claude Code and paste a one-liner. Done.
 
 ## Zero-to-running on a fresh machine
 
-Don't have Python / git / curl / cloudflared installed yet? Open Claude Code in an empty folder and paste the prompt in [`INSTALL_PROMPT.md`](INSTALL_PROMPT.md). Claude detects your OS, installs every dependency (winget / brew / apt), clones the repo, and walks you through the bootstrap.
+Don't have Python / git / curl / cloudflared installed yet? Open Claude Code
+in an empty folder and paste the prompt in
+[`INSTALL_PROMPT.md`](INSTALL_PROMPT.md). Claude detects your OS, installs
+every dependency (winget / brew / apt), clones the repo, and walks you through
+the bootstrap.
 
 ## Prerequisites
 
@@ -31,30 +41,42 @@ Don't have Python / git / curl / cloudflared installed yet? Open Claude Code in 
 | curl | HTTP calls | bundled on Windows 10+, Linux, macOS |
 | cloudflared | public tunnel | `winget install Cloudflare.cloudflared` / `brew install cloudflared` / [docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) |
 | Claude Code CLI | the brain | https://docs.anthropic.com/claude-code |
-
-> **Model recommendation:** the prompt in `CLAUDE_PROMPT.md` was designed and validated against **Anthropic Claude** (Sonnet/Opus). Other models (Kimi, GPT-4, etc.) work but tend to add their own instincts (e.g. blocking `fromMe:true`, retrying with sanitized text, writing the signature into the body). The defenses in `CLAUDE.md` and `send_message.py` make those edge-cases safe, but if you want first-try-correct behavior, stick with Anthropic Claude.
-| megaAPI account | WhatsApp gateway | https://megaapi.com.br (paid SaaS) — or any megaAPI-compatible backend, see [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) |
+| WhatsApp gateway account | inbound/outbound WhatsApp | [megaAPI](https://megaapi.io) (paid SaaS) — or any megaAPI-compatible backend, see [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) |
 | OpenAI API key (optional) | audio transcription | https://platform.openai.com/api-keys |
+
+> **Model recommendation:** the prompt in `CLAUDE_PROMPT.md` was designed and
+> validated against **Anthropic Claude** (Sonnet/Opus). Other models (Kimi,
+> GPT-4, etc.) work but tend to add their own instincts (e.g. blocking
+> `fromMe:true`, retrying with sanitized text, writing the signature into the
+> body). The defenses in `CLAUDE.md` and `send_message.py` make those
+> edge-cases safe, but if you want first-try-correct behavior, stick with
+> Anthropic Claude.
 
 ## Architecture
 
 ```
-WhatsApp -> megaAPI -> Cloudflare Tunnel -> webhook_server.py -> messages_sessionN.jsonl
+WhatsApp -> gateway -> Cloudflare Tunnel -> webhook_server.py -> messages_sessionN.jsonl
                                                                        |
                                                                        v
-WhatsApp <- megaAPI <- send_message.py <- Claude Code session <- monitor.py (Monitor tool)
+WhatsApp <- gateway <- send_message.py <- Claude Code session <- monitor.py (Monitor tool)
 ```
 
-1. `webhook_server.py` listens on `:3020`, validates the whitelisted phone, writes JSONL.
-2. `monitor.py N` tails the per-session JSONL — runs **inside** a Claude Code session via the Monitor tool.
-3. Claude Code reads each JSON line as user input, processes it, and replies via `send_message.py`.
-4. Cloudflare Tunnel (Quick by default, named tunnel for production) exposes `:3020` over HTTPS.
+1. `webhook_server.py` listens on `:3020`, validates the whitelisted phone,
+   writes JSONL.
+2. `monitor.py N` tails the per-session JSONL — runs **inside** a Claude Code
+   session via the Monitor tool.
+3. Claude Code reads each JSON line as user input, processes it, and replies
+   via `send_message.py`.
+4. Cloudflare Tunnel (Quick by default, named tunnel for production) exposes
+   `:3020` over HTTPS.
 
 ## Two tunnel modes
 
-**Quick Tunnel (default, zero-config):** random `*.trycloudflare.com` URL, regenerated each run, no domain needed. Used by `scripts/bootstrap.py`.
+**Quick Tunnel (default, zero-config):** random `*.trycloudflare.com` URL,
+regenerated each run, no domain needed. Used by `scripts/bootstrap.py`.
 
-**Named Tunnel (production):** stable subdomain on a domain you control in Cloudflare. See [SETUP.md § Named Tunnel](SETUP.md#named-tunnel).
+**Named Tunnel (production):** stable subdomain on a domain you control in
+Cloudflare. See [SETUP.md § Named Tunnel](SETUP.md#named-tunnel).
 
 ## Multi-session
 
@@ -75,9 +97,44 @@ Open one Claude Code session per WhatsApp session and paste:
 | Receive | yes | yes (Claude reads natively) | yes (Whisper, optional) | rejected |
 | Send | yes | yes (`send_message.py --type image`) | no | no |
 
+## Swapping the WhatsApp gateway
+
+Allos was built against [megaAPI](https://megaapi.io), but the host URL is a
+runtime config value, not hardcoded. Any backend that implements the contract
+in [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — same endpoints, same JSON
+payloads, same `Authorization: Bearer` header — drops in by changing one
+field.
+
+**To switch gateways** (whether to a different megaAPI plan, a self-hosted
+megaAPI clone, or any compatible backend):
+
+1. Re-run the wizard with `rm config.py && python -m whatsapp_agent.setup_config`.
+2. Enter the new `API base URL` when prompted.
+3. Run `python -m whatsapp_agent.update_webhooks` to push the public webhook
+   URL to the new instance.
+
+**Where the gateway is referenced in the code** (in case you need to adapt to
+a backend that's almost-but-not-quite megaAPI-shaped):
+
+| File | What it does |
+|------|--------------|
+| `src/whatsapp_agent/send_message.py` lines 20-21 | Outbound text + image endpoints (`/rest/sendMessage/{instance}/text`, `/mediaBase64`). |
+| `src/whatsapp_agent/send_message.py` lines 71-114 | Outbound JSON payloads for text and image. |
+| `src/whatsapp_agent/update_webhooks.py` line 24 | `configWebhook` endpoint. |
+| `src/whatsapp_agent/media_handler.py` line 86 | Media download endpoint. |
+| `src/whatsapp_agent/webhook_server.py` lines 46-95 | Inbound payload parser — field names the gateway must produce (`key.remoteJid`, `key.fromMe`, `message.conversation`, `message.imageMessage.{caption,mediaKey,...}`, etc.). |
+| `src/whatsapp_agent/doctor.py` lines 125-135 | Health-check endpoint (`/rest/instance/{instance}`). |
+
+If your gateway uses different paths or payload shapes, edit those locations.
+Everything else (whitelist, JSONL queue, monitor, signature handling) is
+gateway-agnostic.
+
 ## Persistent task memory (beads)
 
-The agent uses [beads](https://github.com/gastownhall/beads) to maintain a dependency-aware task graph that survives session restarts. `bootstrap.py` installs and initializes it automatically on Linux/macOS; on Windows install the binary manually from the beads releases page.
+Allos uses [beads](https://github.com/gastownhall/beads) to maintain a
+dependency-aware task graph that survives session restarts. `bootstrap.py`
+installs and initializes it automatically on Linux/macOS; on Windows install
+the binary manually from the beads releases page.
 
 How Claude Code uses it (full rules in [CLAUDE.md](CLAUDE.md)):
 
@@ -93,14 +150,14 @@ The database lives in `.beads/` (gitignored).
 ```
 .
 |-- src/whatsapp_agent/   # installable package (pip install -e .)
-|   |-- webhook_server.py # HTTP :3020 receiver
+|   |-- webhook_server.py # HTTP :3020 receiver (gateway-shape parser)
 |   |-- monitor.py        # JSONL tail (Monitor target)
-|   |-- send_message.py   # outbound megaAPI client
+|   |-- send_message.py   # outbound gateway client (text + image)
 |   |-- update_webhooks.py# push PUBLIC_WEBHOOK_URL to all sessions
 |   |-- doctor.py         # diagnostics
 |   |-- add_session.py    # wizard to add another WhatsApp session
 |   |-- discover_lid.py   # auto-fill LID after first message
-|   |-- media_handler.py  # decrypt+save media via megaAPI
+|   |-- media_handler.py  # decrypt+save media via gateway
 |   |-- transcribe.py     # OpenAI Whisper wrapper
 |   `-- setup_config.py   # interactive config wizard
 |-- scripts/
@@ -110,8 +167,11 @@ The database lives in `.beads/` (gitignored).
 |-- config.example.py     # template (copy to config.py — gitignored)
 |-- tests/                # pytest
 |-- docs/                 # extended docs and roadmaps
+|   |-- API_CONTRACT.md   # gateway contract (auth + endpoints + payloads)
+|   `-- plans/            # design plans
 |-- CLAUDE_PROMPT.md      # paste into Claude Code to activate the agent
-|-- SETUP.md              # step-by-step walkthrough (megaAPI signup, tunnel modes)
+|-- INSTALL_PROMPT.md     # zero-to-running prompt for fresh machines
+|-- SETUP.md              # step-by-step walkthrough (gateway signup, tunnel modes)
 |-- TROUBLESHOOTING.md    # symptom -> fix
 |-- CONTRIBUTING.md
 |-- CHANGELOG.md
@@ -120,11 +180,13 @@ The database lives in `.beads/` (gitignored).
 
 ## Documentation
 
-- **[SETUP.md](SETUP.md)** — full walkthrough including megaAPI account creation and named tunnel.
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — common boot/runtime issues.
+- **[SETUP.md](SETUP.md)** — full walkthrough including gateway account creation and named tunnel.
+- **[docs/API_CONTRACT.md](docs/API_CONTRACT.md)** — HTTP contract a gateway backend must implement.
+- **[INSTALL_PROMPT.md](INSTALL_PROMPT.md)** — zero-to-running prompt for fresh machines.
 - **[CLAUDE_PROMPT.md](CLAUDE_PROMPT.md)** — the prompt that activates the agent inside Claude Code.
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — common boot/runtime issues.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — dev setup, test commands, commit style.
-- **[PROJETO.md](PROJETO.md)** — architecture deep-dive, megaAPI quirks, decision log.
+- **[PROJETO.md](PROJETO.md)** — architecture deep-dive, gateway quirks, decision log.
 - **[CHANGELOG.md](CHANGELOG.md)** — release history.
 
 ## Security
@@ -140,6 +202,6 @@ MIT — see [LICENSE](LICENSE).
 
 ## Status
 
-- Branch `trilha-1-multimodal` (tag `v1.0-trilha1`) — multi-session + multimodal validated end-to-end on 2026-04-28.
+- Branch `trilha-1-multimodal` (tag `v1.1.1`) — multi-session + multimodal validated end-to-end on 2026-04-28; OSS distribution + provider-agnostic API host shipped 2026-04-30.
 - Tunnel migrated from ngrok to Cloudflare Tunnel.
 - Trilha 2 (24/7 VPS deploy) — see `docs/plans/2026-04-28-trilha-2-vps-deploy.md`.
