@@ -124,7 +124,7 @@ def check_megaapi(sessions):
             continue
         url = f"{cfg.get('instance', '')}"
         # quick ping via status endpoint
-        full = f"https://apibusiness1.megaapi.com.br/rest/instance/{cfg['instance']}"
+        full = f"{MEGA_HOST}/rest/instance/{cfg['instance']}"
         try:
             result = subprocess.run(
                 ["curl", "-s", "-o", os.devnull, "-w", "%{http_code}",

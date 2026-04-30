@@ -33,7 +33,7 @@ Don't have Python / git / curl / cloudflared installed yet? Open Claude Code in 
 | Claude Code CLI | the brain | https://docs.anthropic.com/claude-code |
 
 > **Model recommendation:** the prompt in `CLAUDE_PROMPT.md` was designed and validated against **Anthropic Claude** (Sonnet/Opus). Other models (Kimi, GPT-4, etc.) work but tend to add their own instincts (e.g. blocking `fromMe:true`, retrying with sanitized text, writing the signature into the body). The defenses in `CLAUDE.md` and `send_message.py` make those edge-cases safe, but if you want first-try-correct behavior, stick with Anthropic Claude.
-| megaAPI account | WhatsApp gateway | https://megaapi.com.br (paid SaaS) |
+| megaAPI account | WhatsApp gateway | https://megaapi.com.br (paid SaaS) — or any megaAPI-compatible backend, see [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) |
 | OpenAI API key (optional) | audio transcription | https://platform.openai.com/api-keys |
 
 ## Architecture
