@@ -19,6 +19,10 @@ python scripts/bootstrap.py
 Cloudflare Quick Tunnel, and pushes the public URL to your megaAPI session.
 Then you open Claude Code and paste a one-liner. Done.
 
+## Zero-to-running on a fresh machine
+
+Don't have Python / git / curl / cloudflared installed yet? Open Claude Code in an empty folder and paste the prompt in [`INSTALL_PROMPT.md`](INSTALL_PROMPT.md). Claude detects your OS, installs every dependency (winget / brew / apt), clones the repo, and walks you through the bootstrap.
+
 ## Prerequisites
 
 | Tool | Why | Install |
