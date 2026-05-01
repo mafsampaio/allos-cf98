@@ -1,77 +1,110 @@
-# CLAUDE.md — project rules for Claude Code in this repo
+# CLAUDE.md
 
-This file is auto-loaded by Claude Code when a session opens in this directory. Every rule below is **default behavior** for any session — it can be overridden by an explicit user instruction in the session.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Every rule below is **default behavior** for any session — it can be overridden by an explicit user instruction in the session.
+
+## Architecture
+
+AllosAgent bridges WhatsApp ↔ Claude Code. Data flow:
+
+```
+WhatsApp → megaAPI → Cloudflare Tunnel → webhook_server.py (:3020)
+  → messages_sessionN.jsonl → monitor.py (Monitor tool in Claude Code)
+  → Claude Code processes → send_message.py → megaAPI → WhatsApp
+```
+
+**Key modules** (`src/whatsapp_agent/`):
+- `webhook_server.py` — HTTP server on `:3020`; validates phone whitelist, parses media, appends JSONL lines
+- `monitor.py` — tails `messages_sessionN.jsonl`; maintains `processed_ids_sessionN.txt`; filters own messages by signature
+- `send_message.py` — outbound megaAPI client; auto-appends `*Claude Code*` signature
+- `media_handler.py` — downloads/decrypts media from megaAPI, saves to `media/sessionN/`
+- `transcribe.py` — wraps OpenAI Whisper for audio; returns bracketed fallback if key missing
+- `doctor.py` — diagnostics: Python, curl, cloudflared, config, webhook port, tunnel, megaAPI creds
+- `bootstrap.py` — one-command setup: config wizard → webhook server → Quick Tunnel → update webhooks
+
+**Multi-session:** each Claude Code session monitors exactly one WhatsApp session. Webhook multiplexes via `?session=N` query param. Add sessions with `python -m whatsapp_agent.add_session`.
+
+## Commands
+
+```bash
+# Tests (run after any edit to src/)
+python -m pytest -q
+python -m pytest tests/test_send_message.py -q  # single file
+
+# Diagnostics
+python -m whatsapp_agent.doctor
+
+# Start background services (webhook + tunnel)
+.\scripts\start.ps1          # Windows
+./scripts/start.sh           # Linux/Mac
+
+# Bootstrap (first-time setup)
+python scripts/bootstrap.py
+
+# Re-register webhook URL with megaAPI (after tunnel URL change or config edit)
+python -m whatsapp_agent.update_webhooks
+
+# Discover LID after first message arrives on a new session
+python -m whatsapp_agent.discover_lid [N]
+
+# Session close
+git pull --rebase && bd dolt push && git push
+```
 
 ## Rule 1 — when this session is acting as the WhatsApp agent
 
-This project's purpose is to let users drive Claude Code over WhatsApp. When this Claude Code session has an active Monitor tool watching a `python -m whatsapp_agent.monitor N` process, you are operating as the WhatsApp agent for session `N`. In that role:
+When this Claude Code session has an active Monitor tool watching `python -m whatsapp_agent.monitor N`, you are operating as the WhatsApp agent for session `N`. In that role:
 
-- **Always** reply to the user by calling `python -m whatsapp_agent.send_message <from> "<reply text>" <N>` (or `--type image <from> <path> "<caption>" <N>` for images). Use the `from` field of the JSONL message you are responding to.
-- **Call `send_message` exactly once per user message.** Never retry "with a sanitized version" — the user will receive two messages. If the first call errors out, read stderr, fix the root cause, and call exactly once more (the failed call did not deliver, so the second call is not a duplicate).
-- **Never type the signature `*Claude Code*` into the reply text yourself.** `send_message.py` appends it automatically. Writing it manually causes the signature to appear twice.
-- **Strip emojis / non-BMP characters** before calling `send_message` if the local Windows shell rejects them — do NOT respond once with emojis (which fails) and once without (which succeeds). Edit before sending.
-- **Never** answer inline in the CLI as plain assistant text. The end user is on WhatsApp — text in the CLI is invisible to them.
-- The CLI session output is reserved for tool-call traces, doctor checks, and the local operator's debugging. Treat it as logs, not as a reply channel.
-- If a reply is too long for one WhatsApp message (over ~4000 chars), split into multiple `send_message` calls preserving order.
-- On error, send a short WhatsApp reply ("Erro ao processar — tente reformular") in addition to logging the traceback in the CLI. The user must always get an answer.
+- **Always** reply by calling `python -m whatsapp_agent.send_message <from> "<reply text>" <N>` (or `--type image <from> <path> "<caption>" <N>` for images). Use the `from` field of the JSONL message.
+- **Call `send_message` exactly once per user message.** If the first call errors, read stderr, fix root cause, call once more (failed call did not deliver). Never retry "with a sanitized version" — the user receives two messages.
+- **Never type `*Claude Code*` into the reply text.** `send_message.py` appends it automatically; writing it manually duplicates the signature.
+- **Strip emojis / non-BMP characters** before calling `send_message` if Windows shell rejects them — edit before sending, do not send twice.
+- **Never answer inline in the CLI.** The end user is on WhatsApp; CLI text is invisible to them.
+- Split replies over ~4000 chars into multiple `send_message` calls preserving order.
+- On error, always send a short WhatsApp reply ("Erro ao processar — tente reformular") in addition to logging in CLI.
 
-When this session is **not** acting as the WhatsApp agent (no Monitor tool active on `monitor.py`), reply normally in the CLI.
+When **not** acting as the WhatsApp agent (no Monitor tool active), reply normally in the CLI.
 
 ### Self-chat is the default use case — `fromMe` is NOT a filter
 
-The point of this project is the user driving Claude Code through their own WhatsApp number, sending messages to themselves. Every legitimate user message in that mode arrives with `fromMe: true` (the user IS the instance). DO NOT ignore those messages.
+Every legitimate user message in self-chat mode arrives with `fromMe: true`. **DO NOT ignore those messages.**
 
-The single loop-guard criterion is the literal string `*Claude Code*` in the text field — that is the signature your own replies carry, and it is how you avoid replying to your own echoed message. `fromMe` (true or false) is irrelevant for filtering. The webhook already applied the phone whitelist before writing the JSONL line; if a line is in the file, it is authorized and you must process it (unless its text contains `*Claude Code*`).
+The single loop-guard criterion is the literal string `*Claude Code*` in the text field. The webhook already applied the phone whitelist; if a JSONL line exists, it is authorized — process it unless text contains `*Claude Code*`.
 
 ## Rule 2 — persistent task memory via beads (`bd`)
 
-This repo uses [beads](https://github.com/gastownhall/beads) as a persistent, dependency-aware task graph. The database lives in `.beads/` at the project root. Beads survives across sessions; markdown TODO lists do not.
+The database lives in `.beads/`. Beads survives across sessions; markdown TODO lists do not.
 
-### Bootstrap (first session in a fresh clone)
-- Check whether `.beads/` exists. If it does not, run `bd init` once. Do not re-init if it already exists.
+- Check `.beads/` exists before `bd init` — do not re-init.
+- Run `bd ready --json` before creating tasks to avoid duplicates.
+- `bd create "Title" -p 0|1|2` (0=critical, 1=important, 2=nice-to-have)
+- Claim before starting: `bd update <id> --claim`
+- Close with reason: `bd close <id> "what was done (commit SHA, file path)"`
+- Use `--json` when piping to another tool.
+- Use beads for cross-session work; use in-session TodoWrite only for ephemeral bookkeeping.
 
-### Before creating any new task
-- Run `bd ready --json` to list open tasks with no blockers. Read the result. Do not create a duplicate of an existing open task.
-
-### Creating tasks
-- `bd create "Short imperative title" -p 0` for a critical / blocker task.
-- `bd create "Short imperative title" -p 1` for important work.
-- `bd create "Short imperative title" -p 2` for nice-to-have / cleanup.
-- For epics that decompose, create the parent first, then children: `bd create "Subtask" -p 1 --parent <parent-id>`.
-
-### Working on a task
-- Atomically claim before starting: `bd update <id> --claim`. This prevents two parallel sessions from grabbing the same task.
-- Link dependencies as you discover them: `bd dep add <blocked-id> <blocker-id>`.
-
-### Finishing a task
-- Close with a one-line reason: `bd close <id> "what was done and where (commit SHA, file path, etc.)"`. The reason becomes audit trail.
-
-### Querying
-- `bd ready --json` — work available now (no open blockers).
-- `bd show <id>` — full task details and audit trail.
-- `bd list --status open --json` — every open task.
-- Always use `--json` when piping to another tool.
-
-### When to use beads vs ad-hoc tracking
-- Use beads for any work that spans more than one session, has dependencies, or might be picked up by a different agent later.
-- Use the in-session task-list tool (TaskCreate / TodoWrite) for the current session's bookkeeping; promote anything outliving the session into beads via `bd create`.
+**Session close (mandatory):**
+```bash
+git pull --rebase
+bd dolt push
+git push
+git status  # must show "up to date with origin"
+```
 
 ## Rule 3 — runtime hygiene
 
-These apply whenever you make changes in this repo:
-
-- Source modules live under `src/whatsapp_agent/`. Always invoke them with `python -m whatsapp_agent.<module>` — never `python <module>.py` (the latter only works for the legacy flat layout pre-Task-15 and is not supported anymore).
-- The webhook server, Cloudflare Tunnel, and `monitor.py` instances are long-running. **Do not kill them** unless the user explicitly asks. If you need to know whether one is alive, use `ps -ef | grep ...` or `python -m whatsapp_agent.doctor`.
-- `monitor.py` MUST be launched via Claude Code's Monitor tool, never via `nohup`/`&`/`run_in_background`. Standalone monitors silently consume messages because their stdout has no reader. This is enforced in `CLAUDE_PROMPT.md` and re-stated here as a default.
-- After edits to `src/whatsapp_agent/`, always run `python -m pytest -q` before claiming the change is done.
-- After edits to user-facing config (`config.py`, `PUBLIC_WEBHOOK_URL`), run `python -m whatsapp_agent.update_webhooks` to re-register the URL with megaAPI.
+- Always invoke modules as `python -m whatsapp_agent.<module>` — never `python <module>.py`.
+- The webhook server, Cloudflare Tunnel, and `monitor.py` instances are long-running. **Do not kill them** unless the user explicitly asks. Check liveness with `ps -ef | grep ...` or `doctor`.
+- `monitor.py` MUST be launched via Claude Code's Monitor tool, never via `nohup`/`&`/`run_in_background`. Standalone monitors silently consume messages (mark processed_ids with no reader).
+- After edits to `src/whatsapp_agent/`, run `python -m pytest -q` before claiming done.
+- After edits to `config.py` or `PUBLIC_WEBHOOK_URL`, run `python -m whatsapp_agent.update_webhooks`.
 
 ## Rule 4 — secrets
 
-- `config.py` is gitignored and contains live tokens (`MEGA_TOKEN`, `OPENAI_API_KEY`). Never stage it. Never `cat` its contents into a chat or commit message.
-- `config.example.py` is the public template; keep it in sync with `config.py`'s schema (variable names + comments) but never with actual secret values.
-- The bearer token passed to `curl` in `update_webhooks.py` and `send_message.py` is visible in process command lines on Linux. Acceptable for the local-dev scope; document any change to network exposure in `TROUBLESHOOTING.md`.
+- `config.py` is gitignored and contains live tokens (`MEGA_TOKEN`, `OPENAI_API_KEY`). Never stage it or cat its contents into a chat or commit message.
+- `config.example.py` is the public template; keep variable names + comments in sync with `config.py`, never actual values.
 
 ## Rule 5 — when in doubt, run the doctor
 
-`python -m whatsapp_agent.doctor` is the single command that tells you whether the system is healthy. Run it at the start of any debugging session and any time the user reports something is wrong before changing code.
+`python -m whatsapp_agent.doctor` is the single command that tells you whether the system is healthy. Run it at the start of any debugging session and before changing code when a user reports something is wrong.
