@@ -186,7 +186,6 @@ The database lives in `.beads/` (gitignored).
 - **[CLAUDE_PROMPT.md](CLAUDE_PROMPT.md)** — the prompt that activates the agent inside Claude Code.
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** — common boot/runtime issues.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — dev setup, test commands, commit style.
-- **[PROJETO.md](PROJETO.md)** — architecture deep-dive, gateway quirks, decision log.
 - **[CHANGELOG.md](CHANGELOG.md)** — release history.
 
 ## Security

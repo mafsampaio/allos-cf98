@@ -44,7 +44,7 @@ The CI workflow in `.github/workflows/ci.yml` runs the same suite on every push 
 
 `CLAUDE_PROMPT.md` is the source of truth for the agent's runtime contract. If you change it, also:
 
-- Update `PROJETO.md` if the change is architectural.
+- Update `docs/API_CONTRACT.md` if the change touches the gateway HTTP contract.
 - Add a test to `tests/test_webhook_parser.py` if you change the JSONL schema.
 - Bump `CHANGELOG.md` under `[Unreleased]`.
 
