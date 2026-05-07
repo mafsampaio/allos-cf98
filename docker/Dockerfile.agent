@@ -1,0 +1,27 @@
+FROM node:20-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-pip python3-venv \
+        curl ca-certificates git tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user pra rodar claude
+RUN useradd -m -s /bin/bash -u 1000 allos
+
+# Claude Code CLI
+RUN npm install -g @anthropic-ai/claude-code
+
+USER allos
+WORKDIR /app
+
+# Loop script
+COPY --chown=allos:allos docker/agent_loop.sh /usr/local/bin/agent_loop.sh
+
+# Healthcheck: /tmp/agent-alive < 180s old
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD test -f /tmp/agent-alive && \
+        test $(($(date +%s) - $(stat -c %Y /tmp/agent-alive))) -lt 180
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/agent_loop.sh"]

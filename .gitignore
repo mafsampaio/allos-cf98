@@ -63,3 +63,16 @@ media/
 
 # Beads task graph (per-developer)
 .beads/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+
+# Landing page (deliverable separado, nao versionado)
+landing/
+
+# Docker (Trilha 3)
+.env
+docker-compose.override.yml
+cf-tunnel/

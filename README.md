@@ -25,6 +25,28 @@ python scripts/bootstrap.py
 a Cloudflare Quick Tunnel, and pushes the public URL to your gateway session.
 Then you open Claude Code and paste a one-liner. Done.
 
+## Quick Start with Docker (recommended for OSS users)
+
+If you want a one-command containerized setup with auto-restart on reboot/crash:
+
+```bash
+git clone https://github.com/giovani-junior-dev/Allos.git allos
+cd allos
+python3 scripts/docker_setup.py    # interactive wizard
+docker compose up -d --build
+docker compose logs -f
+```
+
+The wizard configures provider (Anthropic / MiniMax / Kimi K2 / Z.ai / custom),
+megaAPI credentials, and tunnel mode. The stack runs as 3 containers
+(`webhook`, `cloudflared`, `agent`) with `restart: unless-stopped`.
+
+Full docs: [`docs/DOCKER.md`](docs/DOCKER.md). Plan: [`docs/plans/2026-05-07-trilha-3-docker-oss.md`](docs/plans/2026-05-07-trilha-3-docker-oss.md).
+
+> Prefer native systemd + tmux on Linux instead of Docker? See **Trilha 2** —
+> plan in [`docs/plans/2026-04-28-trilha-2-vps-deploy.md`](docs/plans/2026-04-28-trilha-2-vps-deploy.md)
+> (Docker and systemd paths coexist; pick whichever fits your ops style).
+
 ## Zero-to-running on a fresh machine
 
 Don't have Python / git / curl / cloudflared installed yet? Open Claude Code

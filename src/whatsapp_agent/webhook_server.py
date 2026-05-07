@@ -18,6 +18,29 @@ def allowed_phone(session: str) -> str:
 
 
 class WebhookHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if urlparse(self.path).path == "/healthz":
+            # Re-read SESSIONS at request time so config edits take effect without restart.
+            try:
+                import config as _cfg
+                sessions = list(_cfg.SESSIONS.keys())
+            except Exception:
+                sessions = list(SESSIONS.keys())
+            body = json.dumps({
+                "status": "ok",
+                "sessions": sessions,
+            }).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        self.send_response(404)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"not found")
+
     def do_POST(self):
         # extrai ?session= da URL
         qs = parse_qs(urlparse(self.path).query)

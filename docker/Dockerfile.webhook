@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+# OS deps minimas (curl pro healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Source code
+COPY src/whatsapp_agent /app/whatsapp_agent
+COPY config.example.py /app/config.example.py
+
+# Webhook usa stdlib only
+EXPOSE 3020
+
+# config.py vem via volume bind-mount
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:3020/healthz || exit 1
+
+CMD ["python", "-m", "whatsapp_agent.webhook_server"]
