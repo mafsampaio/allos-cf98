@@ -136,13 +136,18 @@ def _collect_provider_env(provider: dict) -> dict:
     if provider.get("needs_token"):
         env["ANTHROPIC_AUTH_TOKEN"] = _ask("ANTHROPIC_AUTH_TOKEN (cole token do provider)")
     if provider.get("ask_model"):
-        print("\nSugestoes populares OpenRouter:")
+        print("\nExemplos populares OpenRouter (apenas referencia, voce escolhe):")
         for m in OPENROUTER_MODELS_HINTS:
             print(f"  - {m}")
-        model = _ask("\nANTHROPIC_MODEL (cole nome completo do modelo)",
-                     default="anthropic/claude-sonnet-4.6")
+        print()
+        # Sem default — usuario precisa digitar
+        while True:
+            model = _ask("ANTHROPIC_MODEL (cole nome completo do modelo OpenRouter)")
+            if model:
+                break
+            print("  Modelo obrigatorio. Veja https://openrouter.ai/models pra lista completa.")
         env["ANTHROPIC_MODEL"] = model
-        # OpenRouter aceita override per-tier
+        # Tiers extras: Enter usa mesmo modelo principal
         env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = _ask(
             "ANTHROPIC_DEFAULT_OPUS_MODEL (Enter = mesmo do principal)",
             default=model)
