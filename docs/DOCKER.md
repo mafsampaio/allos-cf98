@@ -42,7 +42,11 @@ docker compose logs -f
 | MiniMax | `https://api.minimax.io/anthropic` | `MiniMax-M2.7` | https://api.minimax.io |
 | Kimi K2 (Moonshot) | `https://api.moonshot.ai/anthropic` | `kimi-k2-instruct` | https://platform.moonshot.ai |
 | Z.ai GLM | `https://api.z.ai/anthropic` | `glm-4-plus` | https://z.ai |
+| DeepSeek | `https://api.deepseek.com/anthropic` | `deepseek-v4-pro` | https://platform.deepseek.com |
+| OpenRouter | `https://openrouter.ai/api` | livre (Claude/GPT/Gemini/Llama/etc) | https://openrouter.ai |
 | Custom | qualquer endpoint Anthropic-compat | livre | — |
+
+> **OpenRouter** roteia pra dezenas de modelos via 1 unico endpoint. Voce escolhe o modelo no wizard (formato `vendor/model-name`, ex: `anthropic/claude-sonnet-4.6`, `openai/gpt-5`, `meta-llama/llama-4-maverick`). Tem `CLAUDE_CODE_SUBAGENT_MODEL` extra pra rotear sub-agentes pra modelo barato.
 
 Pra trocar provider depois de instalado: edite `.env`, depois `docker compose restart allos-agent`.
 

@@ -62,11 +62,45 @@ PROVIDERS = {
         "needs_token": True,
     },
     "5": {
+        "name": "DeepSeek",
+        "env": {
+            "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+            "ANTHROPIC_MODEL": "deepseek-v4-pro",
+            "ANTHROPIC_SMALL_FAST_MODEL": "deepseek-v4-pro",
+            "API_TIMEOUT_MS": "600000",
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        },
+        "needs_token": True,
+    },
+    "6": {
+        "name": "OpenRouter (escolhe modelo)",
+        "env": {
+            "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+            "ANTHROPIC_API_KEY": "",  # OpenRouter usa AUTH_TOKEN; mantem var presente vazia
+        },
+        "needs_token": True,
+        "ask_model": True,
+    },
+    "7": {
         "name": "Custom (cole BASE_URL/MODEL/TOKEN manual)",
         "env": {},
         "custom": True,
     },
 }
+
+# Sugestoes populares OpenRouter (usuario pode digitar livre)
+OPENROUTER_MODELS_HINTS = [
+    "anthropic/claude-sonnet-4.6",
+    "anthropic/claude-opus-4.7",
+    "anthropic/claude-haiku-4.5",
+    "deepseek/deepseek-v4-pro",
+    "moonshotai/kimi-k2-instruct",
+    "z-ai/glm-4-plus",
+    "openai/gpt-5",
+    "google/gemini-2.5-pro",
+    "meta-llama/llama-4-maverick",
+    "qwen/qwen3-235b",
+]
 
 
 def _ask(prompt: str, default: str | None = None) -> str:
@@ -98,8 +132,29 @@ def _collect_provider_env(provider: dict) -> dict:
         env["ANTHROPIC_BASE_URL"] = _ask("ANTHROPIC_BASE_URL")
         env["ANTHROPIC_MODEL"] = _ask("ANTHROPIC_MODEL")
         env["ANTHROPIC_AUTH_TOKEN"] = _ask("ANTHROPIC_AUTH_TOKEN")
-    elif provider.get("needs_token"):
+        return env
+    if provider.get("needs_token"):
         env["ANTHROPIC_AUTH_TOKEN"] = _ask("ANTHROPIC_AUTH_TOKEN (cole token do provider)")
+    if provider.get("ask_model"):
+        print("\nSugestoes populares OpenRouter:")
+        for m in OPENROUTER_MODELS_HINTS:
+            print(f"  - {m}")
+        model = _ask("\nANTHROPIC_MODEL (cole nome completo do modelo)",
+                     default="anthropic/claude-sonnet-4.6")
+        env["ANTHROPIC_MODEL"] = model
+        # OpenRouter aceita override per-tier
+        env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = _ask(
+            "ANTHROPIC_DEFAULT_OPUS_MODEL (Enter = mesmo do principal)",
+            default=model)
+        env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = _ask(
+            "ANTHROPIC_DEFAULT_SONNET_MODEL (Enter = mesmo do principal)",
+            default=model)
+        env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = _ask(
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL (Enter = mesmo do principal)",
+            default=model)
+        env["CLAUDE_CODE_SUBAGENT_MODEL"] = _ask(
+            "CLAUDE_CODE_SUBAGENT_MODEL (Enter = mesmo do principal)",
+            default=model)
     return env
 
 
