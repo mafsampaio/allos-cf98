@@ -25,27 +25,17 @@ python scripts/bootstrap.py
 a Cloudflare Quick Tunnel, and pushes the public URL to your gateway session.
 Then you open Claude Code and paste a one-liner. Done.
 
-## Quick Start with Docker (recommended for OSS users)
+## Production deploy (Linux 24/7 — Trilha 2)
 
-If you want a one-command containerized setup with auto-restart on reboot/crash:
+For VPS deployment with auto-start on boot, auto-restart on crash, and survival
+across SSH disconnects, follow [`docs/DEPLOY_24_7_LINUX.md`](docs/DEPLOY_24_7_LINUX.md).
+Tested on Ubuntu 24.04 with systemd user services + Cloudflare Named Tunnel +
+tmux session running `claude --dangerously-skip-permissions --continue` in a loop.
 
-```bash
-git clone https://github.com/giovani-junior-dev/Allos.git allos
-cd allos
-python3 scripts/docker_setup.py    # interactive wizard
-docker compose up -d --build
-docker compose logs -f
-```
-
-The wizard configures provider (Anthropic / MiniMax / Kimi K2 / Z.ai / custom),
-megaAPI credentials, and tunnel mode. The stack runs as 3 containers
-(`webhook`, `cloudflared`, `agent`) with `restart: unless-stopped`.
-
-Full docs: [`docs/DOCKER.md`](docs/DOCKER.md). Plan: [`docs/plans/2026-05-07-trilha-3-docker-oss.md`](docs/plans/2026-05-07-trilha-3-docker-oss.md).
-
-> Prefer native systemd + tmux on Linux instead of Docker? See **Trilha 2** —
-> plan in [`docs/plans/2026-04-28-trilha-2-vps-deploy.md`](docs/plans/2026-04-28-trilha-2-vps-deploy.md)
-> (Docker and systemd paths coexist; pick whichever fits your ops style).
+The agent runs in **headless mode** (`--dangerously-skip-permissions`), since you
+interact through WhatsApp and can't approve permission prompts via VPS terminal.
+The megaAPI phone whitelist is the security boundary; add `CMD_TOKEN` in
+`config.py` if you want extra per-message auth.
 
 ## Zero-to-running on a fresh machine
 

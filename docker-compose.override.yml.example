@@ -1,9 +1,0 @@
-# Renomeie pra docker-compose.override.yml pra ativar Quick Tunnel
-# (sem precisar de Cloudflare Zero Trust account/dominio).
-# Quick Tunnel imprime URL random *.trycloudflare.com nos logs do allos-tunnel.
-# A URL muda toda vez que o container reinicia.
-services:
-  allos-tunnel:
-    command: tunnel --no-autoupdate --url http://allos-webhook:3020
-    environment:
-      - TUNNEL_TOKEN=
