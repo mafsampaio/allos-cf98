@@ -137,4 +137,5 @@ Comece pelo PASSO 0 agora.
   instalador NAO automatiza isso — usuario precisa ter credenciais em
   mao antes de rodar PASSO 5.
 - Para Trilha 2 (VPS 24/7) o fluxo e diferente — ver
-  `docs/plans/2026-04-28-trilha-2-vps-deploy.md`.
+  `docs/DEPLOY_24_7_LINUX.md` (runbook canonico, testado em Ubuntu 24.04).
+  Requer `claude --dangerously-skip-permissions` em producao.

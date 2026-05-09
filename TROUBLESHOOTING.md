@@ -51,6 +51,18 @@ When in doubt, run `python -m whatsapp_agent.doctor` first. It prints the state 
 | `pytest` fails on a fresh clone | dependencies missing | `pip install -e .[dev]` (after Task 12 lands `pyproject.toml`). |
 | `pytest` fails with `ModuleNotFoundError: config` | the test fixture pre-pop is broken | check `tests/conftest.py` — fixture must inject a fake `config` module before importing the unit under test. |
 
+## VPS / Linux 24/7 (Trilha 2)
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `bash: ./scripts/start.sh: /bin/bash^M: bad interpreter` on Linux after cloning from Windows | files committed with CRLF line endings; Linux loader chokes on the trailing `\r` | `sed -i 's/\r$//' scripts/*.sh` (or globally `find . -name "*.sh" -exec sed -i 's/\r$//' {} +`). To prevent recurrence, ensure `.gitattributes` declares `*.sh text eol=lf`. |
+| Quick Tunnel URL changed after VPS reboot and WhatsApp messages stop arriving | Quick Tunnel is ephemeral by design; production needs a Named Tunnel | switch to a Named Tunnel as documented in [`docs/DEPLOY_24_7_LINUX.md`](docs/DEPLOY_24_7_LINUX.md). The named tunnel keeps the same subdomain across restarts. |
+| `claude` in the tmux loop sits at the "Sign in" screen forever | first-time auth was never completed under the user that owns the systemd unit | attach the tmux session (`tmux attach -t allos`), run `claude /login` interactively once, finish the browser/device flow, then detach with `Ctrl-b d`. After the first successful login the credential is cached under `~/.claude/` for that user and `--continue` works headlessly. |
+| `claude --continue` exits immediately under the systemd user service with "permission prompt" or "approval pending" output | `--dangerously-skip-permissions` was not passed | edit `scripts/claude_monitor_loop.sh` (or the equivalent wrapper) so `claude` is launched with `--dangerously-skip-permissions --continue`. This flag is **mandatory** for VPS mode — the operator is on WhatsApp and cannot approve prompts. |
+| `claude` cannot read/write `~/.claude/projects/...` when launched by systemd user service | the directory was created by another user (e.g. root during initial test) and the unit user lacks read/write | `sudo chown -R <unit-user>:<unit-user> ~<unit-user>/.claude` and re-enable lingering with `sudo loginctl enable-linger <unit-user>`. |
+| `curl https://agent.your-domain.com/healthz` returns 502 | webhook not running, or cloudflared is up but cannot reach `127.0.0.1:3020` | `systemctl --user status allos-webhook.service` then `journalctl --user -u allos-webhook -n 50`. Check `ingress.service` in `~/.cloudflared/config.yml` is `http://127.0.0.1:3020` (not `localhost`, which can resolve to `::1`). |
+| `curl https://agent.your-domain.com/healthz` returns 200 but WhatsApp replies never come | webhook receives but no Claude Code session has the Monitor tool active | `tmux attach -t allos` and check the `claude` instance is on the agent prompt and Monitor is engaged; if not, restart `allos-monitor.service` and re-cole the prompt. |
+
 ## Beads (bd)
 
 | Symptom | Cause | Fix |

@@ -90,7 +90,9 @@ Each Claude Code session monitors **exactly one** WhatsApp session.
 
 ## Named Tunnel (production)
 
-Quick Tunnel URLs are random and regenerate on every restart. For a stable URL, switch to a named tunnel.
+Quick Tunnel URLs are random and regenerate on every restart. For a stable URL, switch to a Cloudflare Named Tunnel.
+
+Quick reference (Windows / macOS dev box):
 
 ```bash
 cloudflared tunnel login
@@ -115,9 +117,23 @@ Update `config.PUBLIC_WEBHOOK_URL` to `https://agent.your-domain.com` and run `p
 Run the tunnel as a background service:
 
 ```bash
-# Linux: systemd unit (sudo cloudflared service install)
 # Windows (admin PowerShell):
 cloudflared service install
+```
+
+## Linux 24/7 production (VPS) — Trilha 2
+
+For a real production deploy on a Linux box (auto-start on boot, auto-restart on crash, survives SSH disconnect, stable subdomain), follow the canonical runbook:
+
+**[`docs/DEPLOY_24_7_LINUX.md`](docs/DEPLOY_24_7_LINUX.md)** — tested on Ubuntu 24.04. It walks through three systemd **user** services (`allos-webhook.service`, `allos-tunnel.service`, `allos-monitor.service`), a tmux session running `claude --dangerously-skip-permissions --continue` in a loop, and a Cloudflare Named Tunnel.
+
+`--dangerously-skip-permissions` is **mandatory** for the VPS flow — you interact via WhatsApp and cannot approve permission prompts on a remote terminal. The megaAPI phone whitelist (and optional `CMD_TOKEN` in `config.py`) remain the security boundary.
+
+You can sanity-check the running webhook from any host with:
+
+```bash
+curl https://agent.your-domain.com/healthz
+# {"status": "ok", "sessions": ["1", ...]}
 ```
 
 ## Stopping

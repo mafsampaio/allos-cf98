@@ -52,9 +52,20 @@ cloudflared tunnel --url http://127.0.0.1:3020
 
 cloudflared imprime uma URL tipo `https://abc-123.trycloudflare.com`. Atualize `config.PUBLIC_WEBHOOK_URL` e rode `python -m whatsapp_agent.update_webhooks` para empurrar para a megaAPI.
 
-### Opcao C — VPS producao (24/7)
+### Opcao C — VPS producao (24/7) — Trilha 2
 
-Coberto na Trilha 2 (em desenvolvimento): Cloudflare Tunnel + systemd.
+Runbook canonico: **[`docs/DEPLOY_24_7_LINUX.md`](docs/DEPLOY_24_7_LINUX.md)** (testado em Ubuntu 24.04).
+
+Stack: 3 systemd **user services** (`allos-webhook.service`, `allos-tunnel.service`, `allos-monitor.service`) + sessao tmux rodando `claude --dangerously-skip-permissions --continue` em loop + Cloudflare Named Tunnel.
+
+**OBRIGATORIO em modo VPS:** `claude` precisa rodar com `--dangerously-skip-permissions`. O usuario interage por WhatsApp e nao tem como aprovar prompts de permissao no terminal remoto. A whitelist de telefone da megaAPI (e o `CMD_TOKEN` opcional em `config.py`) sao a fronteira de seguranca.
+
+Healthcheck rapido de qualquer maquina:
+
+```bash
+curl https://agent.SEU-DOMINIO.com/healthz
+# {"status": "ok", "sessions": ["1", ...]}
+```
 
 ### Verificacao (qualquer opcao)
 

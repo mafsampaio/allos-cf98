@@ -15,7 +15,7 @@ WhatsApp → megaAPI → Cloudflare Tunnel → webhook_server.py (:3020)
 ```
 
 **Key modules** (`src/whatsapp_agent/`):
-- `webhook_server.py` — HTTP server on `:3020`; validates phone whitelist, parses media, appends JSONL lines
+- `webhook_server.py` — HTTP server on `:3020`; validates phone whitelist, parses media, appends JSONL lines; also serves `GET /healthz` returning JSON `{"status":"ok","sessions":[...]}` for Cloudflare and external monitoring
 - `monitor.py` — tails `messages_sessionN.jsonl`; maintains `processed_ids_sessionN.txt`; filters own messages by signature
 - `send_message.py` — outbound megaAPI client; auto-appends `*Claude Code*` signature
 - `media_handler.py` — downloads/decrypts media from megaAPI, saves to `media/sessionN/`
@@ -108,3 +108,13 @@ git status  # must show "up to date with origin"
 ## Rule 5 — when in doubt, run the doctor
 
 `python -m whatsapp_agent.doctor` is the single command that tells you whether the system is healthy. Run it at the start of any debugging session and before changing code when a user reports something is wrong.
+
+For a remote / production check (no shell on the host), `curl https://<your-tunnel>/healthz` returns `{"status":"ok","sessions":[...]}` if the webhook is up.
+
+## Rule 6 — production (24/7) deploy path
+
+The official 24/7 deploy is **Trilha 2**: Linux host (tested Ubuntu 24.04), three systemd **user** services (`allos-webhook.service`, `allos-tunnel.service`, `allos-monitor.service`), Cloudflare Named Tunnel, and a tmux session running `claude --dangerously-skip-permissions --continue` in a loop. Canonical runbook: [`docs/DEPLOY_24_7_LINUX.md`](docs/DEPLOY_24_7_LINUX.md).
+
+`--dangerously-skip-permissions` is **mandatory** in VPS mode — the operator interacts via WhatsApp and cannot approve permission prompts on a remote terminal. The megaAPI phone whitelist (and optional `CMD_TOKEN`) remain the security boundary.
+
+Trilha 3 (Docker OSS distribution) was attempted in May 2026 and **abandoned** in commit `eaccb6f` (tag `v1.2.0`). Root cause: `claude --continue` launched non-interactively runs in Agent SDK headless mode, which does not expose the Monitor tool. Do not reintroduce a Docker stack without solving that first.

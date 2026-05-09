@@ -1,5 +1,7 @@
 # Trilha 2 — VPS Deploy Implementation Plan
 
+> **STATUS — SUPERSEDED (2026-05-09, tag `v1.2.0`).** Trilha 2 shipped, but the as-built design diverged from this plan: **systemd user services** (not system units under a dedicated `whatsapp` account), no `/opt/whatsapp-claude-agent` install root, no `install/deploy_vps.sh` orchestrator, no `install/` shim layout, and no Docker dry-run. The canonical, as-shipped runbook is **[`docs/DEPLOY_24_7_LINUX.md`](../DEPLOY_24_7_LINUX.md)**. This file is kept for historical context (design rationale, Task 1 healthz endpoint which did land, etc.) — do not execute it as written.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Mover o agente WhatsApp Claude Agent de localhost (Windows + ngrok + Claude Code interativo) para VPS Linux operando 24/7 com Cloudflare Tunnel + systemd + tmux.

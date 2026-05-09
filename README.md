@@ -213,6 +213,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Status
 
-- Branch `trilha-1-multimodal` (tag `v1.1.1`) — multi-session + multimodal validated end-to-end on 2026-04-28; OSS distribution + provider-agnostic API host shipped 2026-04-30.
-- Tunnel migrated from ngrok to Cloudflare Tunnel.
-- Trilha 2 (24/7 VPS deploy) — see `docs/plans/2026-04-28-trilha-2-vps-deploy.md`.
+- Tag `v1.2.0` (2026-05-09) — Trilha 2 promoted to official production path. Canonical 24/7 runbook: [`docs/DEPLOY_24_7_LINUX.md`](docs/DEPLOY_24_7_LINUX.md). `webhook_server.py` exposes `GET /healthz`. `--dangerously-skip-permissions` is mandatory for VPS mode.
+- Trilha 3 (Docker OSS) was attempted and **abandoned** (commit `eaccb6f`) — `claude --continue` runs in Agent SDK headless mode and does not expose the Monitor tool this project depends on. See CHANGELOG for details.
+- Trilha 1 (local dev) — multi-session + multimodal validated end-to-end on 2026-04-28; remains the quick-start path via `python scripts/bootstrap.py`.
+- Tunnel migrated from ngrok to Cloudflare Tunnel (Quick Tunnel for dev, Named Tunnel for production).
