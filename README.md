@@ -13,6 +13,10 @@ See [Swapping the WhatsApp gateway](#swapping-the-whatsapp-gateway) below.
 [![CI](https://github.com/giovani-junior-dev/Allos/actions/workflows/ci.yml/badge.svg)](https://github.com/giovani-junior-dev/Allos/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## Video walkthrough
+
+[![Watch the video](https://img.youtube.com/vi/ZJU_eJV-ENE/maxresdefault.jpg)](https://www.youtube.com/watch?v=ZJU_eJV-ENE)
+
 ## TL;DR
 
 ```bash
