@@ -1,14 +1,26 @@
-# Allos — WhatsApp Claude Agent
+# Allos-CF98 — WhatsApp Claude Agent (Evolution edition)
+
+> **CF98 fork** of [`giovani-junior-dev/Allos`](https://github.com/giovani-junior-dev/Allos) adapted to use **Evolution API** as the WhatsApp gateway instead of megaAPI.
 
 Allos is a self-hosted WhatsApp agent that uses **Claude Code CLI** as the LLM
 engine (no extra API key for the LLM itself). It receives WhatsApp messages
 through an HTTP gateway and replies via Claude Code.
 
-The reference WhatsApp gateway is [megaAPI](https://megaapi.io). Allos is built
-to its request/response shape — but the host URL is configurable, and any
-backend that mirrors the contract documented in
-[`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) works as a drop-in replacement.
-See [Swapping the WhatsApp gateway](#swapping-the-whatsapp-gateway) below.
+This fork swaps the gateway to [Evolution API](https://doc.evolution-api.com).
+Key differences vs. upstream:
+
+| | Upstream (megaAPI) | This fork (Evolution) |
+|---|---|---|
+| Auth header | `Authorization: Bearer <token>` | `apikey: <token>` |
+| Send text | `POST /rest/sendMessage/{instance}/text` + `{messageData:{to,text}}` | `POST /message/sendText/{instance}` + `{number, options, textMessage:{text}}` |
+| Send image | `POST /rest/sendMessage/{instance}/mediaBase64` + `messageData` wrapper | `POST /message/sendMedia/{instance}` + `{number, mediaMessage:{mediatype, media, fileName, caption}}` |
+| Set webhook | `POST /rest/webhook/{instance}/configWebhook` | `POST /webhook/set/{instance}` |
+| Download media | `POST /rest/instance/downloadMediaMessage/{instance}` (returns `data: URI`) | `POST /chat/getBase64FromMediaMessage/{instance}` (returns raw `base64`) |
+| Health check | `GET /rest/instance/{instance}` | `GET /instance/connectionState/{instance}` |
+| Webhook inbound payload | Baileys-shape direct | Wrapped `{event, instance, data: {Baileys-shape}}` (unwrapped by `webhook_server.py`) |
+
+Upstream contract docs in [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) reflect
+megaAPI shape and are kept for upstream merges; production code uses Evolution shape.
 
 [![CI](https://github.com/giovani-junior-dev/Allos/actions/workflows/ci.yml/badge.svg)](https://github.com/giovani-junior-dev/Allos/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

@@ -93,6 +93,34 @@ def test_audio_no_autotranscribe(fake_config, tmp_workdir):
     assert msg["text"] == "[audio]"
 
 
+def test_evolution_wrapper_is_unwrapped(fake_config, tmp_workdir):
+    """Evolution v1.x sends {event, instance, data: {key, message, ...}}.
+
+    The webhook server must unwrap before parsing.
+    """
+    ws = _import_ws()
+    payload = {
+        "event": "messages.upsert",
+        "instance": "marcilio-claude",
+        "data": {
+            "key": {"id": "WRAP1", "remoteJid": "5511999999999@s.whatsapp.net", "fromMe": False},
+            "pushName": "Marcilio",
+            "message": {"conversation": "oi via wrapper"},
+            "messageTimestamp": 5678,
+        },
+    }
+
+    # Simulate the do_POST unwrap step (Evolution wrapper detection):
+    if isinstance(payload, dict) and "event" in payload and isinstance(payload.get("data"), dict):
+        payload = payload["data"]
+
+    handler = ws.WebhookHandler.__new__(ws.WebhookHandler)
+    msg = handler._parse(payload, session="1")
+    assert msg is not None
+    assert msg["id"] == "WRAP1"
+    assert msg["text"] == "oi via wrapper"
+
+
 def test_image_without_caption_uses_placeholder(fake_config, tmp_workdir):
     ws = _import_ws()
     handler = ws.WebhookHandler.__new__(ws.WebhookHandler)

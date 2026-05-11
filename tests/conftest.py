@@ -18,7 +18,8 @@ def fake_config(tmp_workdir):
     """Write minimal config.py into tmp cwd. Yields the cwd path."""
     cfg = '''CMD_TOKEN = "tok"
 SIGNATURE = "*Claude Code*"
-MEGA_HOST = "https://apibusiness1.megaapi.com.br"
+EVOLUTION_HOST = "https://evolution.example.com"
+PUBLIC_WEBHOOK_URL = "https://allos.example.com"
 SESSIONS = {
     "1": {
         "instance": "inst1",
@@ -27,11 +28,11 @@ SESSIONS = {
         "lid":      "11111111111111",
     },
 }
-ALLOWED_PHONE = SESSIONS["1"]["phone"]
-ALLOWED_LID   = SESSIONS["1"]["lid"]
-MEGA_INSTANCE = SESSIONS["1"]["instance"]
-MEGA_TOKEN    = SESSIONS["1"]["token"]
-MEGA_BASE_URL = f"{MEGA_HOST}/rest/sendMessage/{MEGA_INSTANCE}"
+ALLOWED_PHONE      = SESSIONS["1"]["phone"]
+ALLOWED_LID        = SESSIONS["1"]["lid"]
+EVOLUTION_INSTANCE = SESSIONS["1"]["instance"]
+EVOLUTION_TOKEN    = SESSIONS["1"]["token"]
+EVOLUTION_BASE_URL = f"{EVOLUTION_HOST}/message/sendText/{EVOLUTION_INSTANCE}"
 OPENAI_API_KEY = ""
 '''
     (tmp_workdir / "config.py").write_text(cfg, encoding="utf-8")

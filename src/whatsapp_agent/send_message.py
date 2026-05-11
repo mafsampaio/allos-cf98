@@ -6,6 +6,8 @@ Usage:
 Examples:
     python send_message.py 5511999999999 "Ola!" 1
     python send_message.py --type image 5511999999999 ./photo.jpg "veja" 1
+
+Adapted for Evolution API v1.x (https://doc.evolution-api.com).
 """
 import base64
 import json
@@ -14,11 +16,11 @@ import os
 import subprocess
 import sys
 
-from config import SESSIONS, MEGA_HOST, SIGNATURE
+from config import SESSIONS, EVOLUTION_HOST, SIGNATURE
 
 
-TEXT_ENDPOINT  = "{host}/rest/sendMessage/{instance}/text"
-MEDIA_ENDPOINT = "{host}/rest/sendMessage/{instance}/mediaBase64"
+TEXT_ENDPOINT  = "{host}/message/sendText/{instance}"
+MEDIA_ENDPOINT = "{host}/message/sendMedia/{instance}"
 
 EXT_MIME = {
     ".jpg":  "image/jpeg",
@@ -37,7 +39,7 @@ def _curl_json(url: str, payload_json: str, token: str) -> dict:
             [
                 "curl", "-s", "-X", "POST", url,
                 "-H", "accept: */*",
-                "-H", f"Authorization: Bearer {token}",
+                "-H", f"apikey: {token}",
                 "-H", "Content-Type: application/json",
                 "-d", payload_json,
             ],
@@ -65,11 +67,13 @@ def _strip_signature(text: str) -> str:
 
 def send_text(phone: str, text: str, session: str = "1") -> dict:
     cfg = SESSIONS.get(session, SESSIONS["1"])
-    url = TEXT_ENDPOINT.format(host=MEGA_HOST, instance=cfg["instance"])
+    url = TEXT_ENDPOINT.format(host=EVOLUTION_HOST, instance=cfg["instance"])
     body = _strip_signature(text)
     full_text = f"{body}\n\n{SIGNATURE}" if body else SIGNATURE
     payload = json.dumps({
-        "messageData": {"to": phone, "text": full_text, "linkPreview": False}
+        "number": phone,
+        "options": {"delay": 0, "linkPreview": False},
+        "textMessage": {"text": full_text},
     })
     return _curl_json(url, payload, cfg["token"])
 
@@ -91,7 +95,7 @@ def send_image(phone: str, image_path: str, caption: str = "", session: str = "1
         return {"error": f"image too large: {size} bytes (max {MAX_IMAGE_BYTES})"}
 
     cfg = SESSIONS.get(session, SESSIONS["1"])
-    url = MEDIA_ENDPOINT.format(host=MEGA_HOST, instance=cfg["instance"])
+    url = MEDIA_ENDPOINT.format(host=EVOLUTION_HOST, instance=cfg["instance"])
 
     with open(image_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode("ascii")
@@ -101,16 +105,14 @@ def send_image(phone: str, image_path: str, caption: str = "", session: str = "1
     full_caption = (f"{body}\n\n{SIGNATURE}" if body else SIGNATURE).strip()
 
     payload = json.dumps({
-        "messageData": {
-            "to":          phone,
-            "base64":      b64,
-            "fileName":    os.path.basename(image_path),
-            "type":        "image",
-            "caption":     full_caption,
-            "gifPlayback": False,
-            "mimeType":    mime,
-            "viewOnce":    False,
-        }
+        "number": phone,
+        "options": {"delay": 0, "presence": "composing"},
+        "mediaMessage": {
+            "mediatype": "image",
+            "fileName":  os.path.basename(image_path),
+            "caption":   full_caption,
+            "media":     b64,
+        },
     })
     return _curl_json(url, payload, cfg["token"])
 

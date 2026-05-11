@@ -1,4 +1,4 @@
-"""Tests for setup_config wizard."""
+"""Tests for setup_config wizard (Evolution edition)."""
 from unittest.mock import patch
 
 
@@ -11,12 +11,13 @@ def test_writes_config_with_openai_key(fake_config, tmp_workdir):
     from whatsapp_agent import setup_config
 
     inputs = iter([
-        "meutoken",
-        "https://apibusiness1.megaapi.com.br",
-        "megabusiness-test",
-        "abc123",
-        "5511999999999",
-        "sk-test123",
+        "meutoken",                              # cmd_token
+        "https://evolution.cf98.online",         # evolution host
+        "marcilio-claude",                       # instance
+        "abc123",                                # token
+        "https://allos.cf98.online",             # public webhook url
+        "5511999999999",                         # phone
+        "sk-test123",                            # openai key
     ])
     with patch("builtins.input", lambda *a, **k: next(inputs)):
         rc = setup_config.main()
@@ -26,7 +27,9 @@ def test_writes_config_with_openai_key(fake_config, tmp_workdir):
     assert "'meutoken'" in content
     assert "'sk-test123'" in content
     assert "OPENAI_API_KEY" in content
-    assert "'https://apibusiness1.megaapi.com.br'" in content
+    assert "'https://evolution.cf98.online'" in content
+    assert "'marcilio-claude'" in content
+    assert "'https://allos.cf98.online'" in content
 
 
 def test_blank_openai_key_allowed(fake_config, tmp_workdir):
@@ -37,9 +40,10 @@ def test_blank_openai_key_allowed(fake_config, tmp_workdir):
 
     inputs = iter([
         "meutoken",
-        "https://apibusiness1.megaapi.com.br",
-        "megabusiness-test",
+        "https://evolution.cf98.online",
+        "marcilio-claude",
         "abc123",
+        "https://allos.cf98.online",
         "5511999999999",
         "",
     ])
@@ -59,9 +63,10 @@ def test_host_validation_rejects_then_accepts(fake_config, tmp_workdir):
     inputs = iter([
         "",                                        # cmd_token skip
         "not-a-url",                               # invalid host -> retry
-        "https://apinocode01.megaapi.com.br/",     # trailing slash, valid -> stripped
-        "instance-x",
+        "https://evolution.cf98.online/",          # trailing slash, valid -> stripped
+        "marcilio-claude",
         "tok-x",
+        "https://allos.cf98.online",
         "5511988888888",
         "",
     ])
@@ -69,5 +74,5 @@ def test_host_validation_rejects_then_accepts(fake_config, tmp_workdir):
         rc = setup_config.main()
     assert rc == 0
     content = (tmp_workdir / "config.py").read_text(encoding="utf-8")
-    assert "'https://apinocode01.megaapi.com.br'" in content
-    assert "apinocode01.megaapi.com.br/'" not in content  # trailing slash stripped
+    assert "'https://evolution.cf98.online'" in content
+    assert "evolution.cf98.online/'" not in content  # trailing slash stripped

@@ -1,12 +1,12 @@
 """
-Download de media (audio/imagem/video) via endpoint decrypt da megaAPI.
+Download de media (audio/imagem/video) via endpoint decrypt da Evolution API.
 
 WhatsApp criptografa media end-to-end. URL .enc nao serve direto.
-megaAPI tem endpoint que decripta server-side e retorna base64.
+Evolution tem endpoint que decripta server-side e retorna base64.
 
-Endpoint: POST /rest/instance/downloadMediaMessage/{instance}
-Body: {"messageKeys": {mediaKey, directPath, url, mimetype, messageType}}
-Resp: {"error": bool, "message": str, "data": "data:MIME;base64,XXX"}
+Endpoint: POST /chat/getBase64FromMediaMessage/{instance}
+Body: {"message": {"key": {"id": "<msg_id>"}}, "convertToMp4": false}
+Resp: {"mediaType": ..., "fileName": ..., "caption": ..., "size": ..., "mimetype": ..., "base64": "..."}
 
 Layout local: media/sessionN/<msg_id>.<ext>
 """
@@ -16,7 +16,7 @@ import os
 import subprocess
 from typing import Optional
 
-from config import SESSIONS, MEGA_HOST
+from config import SESSIONS, EVOLUTION_HOST
 
 
 MIME_EXT = {
@@ -51,7 +51,12 @@ def detect_message_type(payload: dict) -> Optional[str]:
 
 
 def extract_message_keys(msg_block: dict, message_type: str) -> Optional[dict]:
-    """Builds the messageKeys body for downloadMediaMessage. Returns None if missing fields."""
+    """Builds the messageKeys body for downloadMediaMessage. Returns None if missing fields.
+
+    Evolution doesn't require all the Baileys fields — only message.key.id is mandatory —
+    but we still extract the Baileys-shape fields for compatibility with any downstream
+    consumer expecting them.
+    """
     inner = msg_block.get(message_type) or {}
     required = ("mediaKey", "directPath", "url", "mimetype")
     if not all(inner.get(k) for k in required):
@@ -76,22 +81,29 @@ def decode_data_uri(s: str) -> bytes:
 
 def download_media(session: str, msg_id: str, message_keys: dict) -> Optional[str]:
     """
-    Calls megaAPI decrypt endpoint, saves bytes to media/sessionN/<msg_id>.<ext>.
+    Calls Evolution decrypt endpoint, saves bytes to media/sessionN/<msg_id>.<ext>.
     Returns local path on success, None on failure.
+
+    Evolution v1.x: POST /chat/getBase64FromMediaMessage/{instance}
+    Body is {"message": {"key": {"id": msg_id}}, "convertToMp4": false}.
+    Resp has base64 directly in `base64` key.
     """
     cfg = SESSIONS.get(session, SESSIONS.get("1"))
     if not cfg:
         return None
 
-    endpoint = f"{MEGA_HOST}/rest/instance/downloadMediaMessage/{cfg['instance']}"
-    payload = json.dumps({"messageKeys": message_keys})
+    endpoint = f"{EVOLUTION_HOST}/chat/getBase64FromMediaMessage/{cfg['instance']}"
+    payload = json.dumps({
+        "message": {"key": {"id": msg_id}},
+        "convertToMp4": False,
+    })
 
     try:
         result = subprocess.run(
             [
                 "curl", "-s", "-X", "POST", endpoint,
                 "-H", "accept: */*",
-                "-H", f"Authorization: Bearer {cfg['token']}",
+                "-H", f"apikey: {cfg['token']}",
                 "-H", "Content-Type: application/json",
                 "-d", payload,
             ],
@@ -107,19 +119,22 @@ def download_media(session: str, msg_id: str, message_keys: dict) -> Optional[st
         print(f"DOWNLOAD_PARSE_ERROR: {result.stdout[:200]}", flush=True)
         return None
 
-    if data.get("error"):
-        print(f"DOWNLOAD_API_ERROR: {data.get('message')}", flush=True)
+    # Evolution returns error as status/message at top-level on failure
+    if data.get("status") and data.get("status") != 200:
+        print(f"DOWNLOAD_API_ERROR: {data}", flush=True)
         return None
 
+    b64_payload = data.get("base64") or data.get("data") or ""
     try:
-        raw = decode_data_uri(data.get("data", ""))
+        raw = decode_data_uri(b64_payload)
     except Exception:
         print(f"DOWNLOAD_DECODE_ERROR: bad base64 in response", flush=True)
         return None
     if not raw:
         return None
 
-    ext = ext_for_mime(message_keys.get("mimetype", ""))
+    mimetype = data.get("mimetype") or message_keys.get("mimetype", "")
+    ext = ext_for_mime(mimetype)
     safe_session = "".join(c for c in str(session) if c.isalnum())
     out_dir = os.path.join("media", f"session{safe_session}")
     os.makedirs(out_dir, exist_ok=True)

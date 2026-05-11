@@ -1,4 +1,4 @@
-"""Tests for add_session wizard."""
+"""Tests for add_session wizard (Evolution edition)."""
 import sys
 from unittest.mock import patch
 
@@ -6,15 +6,16 @@ from unittest.mock import patch
 def _seed(tmp_workdir, sessions_block):
     cfg = f'''CMD_TOKEN = "tok"
 SIGNATURE = "*Claude Code*"
-MEGA_HOST = "https://apibusiness1.megaapi.com.br"
+EVOLUTION_HOST = "https://evolution.example.com"
+PUBLIC_WEBHOOK_URL = "https://allos.example.com"
 SESSIONS = {{
 {sessions_block}
 }}
-ALLOWED_PHONE = "111"
-ALLOWED_LID = ""
-MEGA_INSTANCE = "i1"
-MEGA_TOKEN = "t1"
-MEGA_BASE_URL = ""
+ALLOWED_PHONE      = "111"
+ALLOWED_LID        = ""
+EVOLUTION_INSTANCE = "i1"
+EVOLUTION_TOKEN    = "t1"
+EVOLUTION_BASE_URL = ""
 OPENAI_API_KEY = ""
 '''
     (tmp_workdir / "config.py").write_text(cfg, encoding="utf-8")
@@ -25,14 +26,14 @@ def test_appends_second_session(fake_config, tmp_workdir):
     _seed(tmp_workdir, '    "1": {"instance": "i1", "token": "t1", "phone": "111", "lid": ""},')
     from whatsapp_agent import add_session
 
-    inputs = iter(["megabusiness-second", "tok2", "5511888888888"])
+    inputs = iter(["second-instance", "tok2", "5511888888888"])
     with patch("builtins.input", lambda *a, **k: next(inputs)):
         rc = add_session.main()
 
     assert rc == 0
     content = (tmp_workdir / "config.py").read_text(encoding="utf-8")
     assert '"2":' in content
-    assert "megabusiness-second" in content
+    assert "second-instance" in content
     assert "5511888888888" in content
     assert '"1":' in content
 

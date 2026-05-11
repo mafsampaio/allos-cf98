@@ -1,4 +1,4 @@
-"""Tests for media_handler."""
+"""Tests for media_handler (Evolution edition)."""
 import base64
 import os
 import sys
@@ -56,10 +56,11 @@ def test_decode_data_uri_pure_base64_fallback(fake_config):
 
 
 def test_download_media_writes_file(fake_config, tmp_workdir):
+    """Evolution returns base64 directly (no data: URI prefix needed)."""
     media_handler = _import()
 
     body = base64.b64encode(b"AUDIOPAYLOAD").decode()
-    response = '{"error": false, "message": "ok", "data": "data:audio/ogg;base64,' + body + '"}'
+    response = '{"mediaType":"audio","mimetype":"audio/ogg; codecs=opus","base64":"' + body + '"}'
 
     fake_proc = MagicMock(stdout=response, stderr="", returncode=0)
     with patch("whatsapp_agent.media_handler.subprocess.run", return_value=fake_proc):
@@ -84,9 +85,10 @@ def test_download_media_writes_file(fake_config, tmp_workdir):
 
 
 def test_download_media_returns_none_on_api_error(fake_config, tmp_workdir):
+    """Evolution returns status != 200 on failure."""
     media_handler = _import()
 
-    response = '{"error": true, "message": "media not found"}'
+    response = '{"status":404,"error":"Not Found","response":{"message":"media not found"}}'
     fake_proc = MagicMock(stdout=response, stderr="", returncode=0)
     with patch("whatsapp_agent.media_handler.subprocess.run", return_value=fake_proc):
         path = media_handler.download_media(
@@ -102,7 +104,7 @@ def test_download_media_returns_none_on_api_error(fake_config, tmp_workdir):
 
 def test_download_media_handles_malformed_base64(fake_config, tmp_workdir):
     media_handler = _import()
-    response = '{"error": false, "message": "ok", "data": "data:audio/ogg;base64,not!!valid%%base64"}'
+    response = '{"mediaType":"audio","mimetype":"audio/ogg","base64":"not!!valid%%base64"}'
     fake_proc = MagicMock(stdout=response, stderr="", returncode=0)
     with patch("whatsapp_agent.media_handler.subprocess.run", return_value=fake_proc):
         path = media_handler.download_media(
@@ -120,7 +122,7 @@ def test_download_media_sanitises_session(fake_config, tmp_workdir):
     """Path traversal in session must be neutralised."""
     media_handler = _import()
     body = base64.b64encode(b"PAYLOAD").decode()
-    response = '{"error": false, "data": "data:audio/ogg;base64,' + body + '"}'
+    response = '{"mediaType":"audio","mimetype":"audio/ogg","base64":"' + body + '"}'
     fake_proc = MagicMock(stdout=response, stderr="", returncode=0)
     with patch("whatsapp_agent.media_handler.subprocess.run", return_value=fake_proc):
         path = media_handler.download_media(
@@ -131,10 +133,34 @@ def test_download_media_sanitises_session(fake_config, tmp_workdir):
                 "mimetype": "audio/ogg; codecs=opus", "messageType": "audioMessage",
             },
         )
-    # Must NOT contain `..` or escape media/. Must contain only alphanumerics in session segment.
     assert path is not None
     norm = path.replace("\\", "/")
     assert ".." not in norm
-    assert "evil" in norm  # alphanumerics preserved
-    # File must be inside media/ subtree
+    assert "evil" in norm
     assert norm.startswith("media/") or "/media/session" in norm
+
+
+def test_download_media_uses_apikey_header(fake_config, tmp_workdir):
+    media_handler = _import()
+    body = base64.b64encode(b"X").decode()
+    response = '{"mediaType":"audio","mimetype":"audio/ogg","base64":"' + body + '"}'
+
+    captured = {}
+    def fake_run(cmd, **kw):
+        captured["cmd"] = cmd
+        return MagicMock(stdout=response, stderr="", returncode=0)
+
+    with patch("whatsapp_agent.media_handler.subprocess.run", side_effect=fake_run):
+        media_handler.download_media(
+            session="1",
+            msg_id="Y",
+            message_keys={
+                "mediaKey": "x", "directPath": "x", "url": "x",
+                "mimetype": "audio/ogg", "messageType": "audioMessage",
+            },
+        )
+
+    headers = [captured["cmd"][i + 1] for i, a in enumerate(captured["cmd"]) if a == "-H"]
+    assert any(h == "apikey: tok1" for h in headers), f"missing apikey header: {headers}"
+    endpoint = captured["cmd"][captured["cmd"].index("POST") + 1]
+    assert "/chat/getBase64FromMediaMessage/inst1" in endpoint

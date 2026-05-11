@@ -57,6 +57,11 @@ class WebhookHandler(BaseHTTPRequestHandler):
         with open("raw_debug.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
+        # Evolution v1.x envia {event, instance, data: {key, message, ...}, ...}.
+        # Desempacota para que o parser Baileys-shape funcione direto.
+        if isinstance(data, dict) and "event" in data and isinstance(data.get("data"), dict):
+            data = data["data"]
+
         msg = self._parse(data, session)
         if msg:
             msg["session"] = session

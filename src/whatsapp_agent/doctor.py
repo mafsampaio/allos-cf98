@@ -40,7 +40,7 @@ def check_cloudflared():
     if shutil.which("cloudflared"):
         ok("cloudflared disponivel")
         return True
-    warn("cloudflared nao encontrado no PATH (winget install Cloudflare.cloudflared)")
+    warn("cloudflared nao encontrado no PATH (brew install cloudflared / apt install cloudflared)")
     return False
 
 
@@ -49,7 +49,7 @@ def check_config():
         err("config.py nao existe. Rode: python setup_config.py")
         return False, None
     try:
-        from config import SESSIONS, CMD_TOKEN, MEGA_HOST
+        from config import SESSIONS, CMD_TOKEN, EVOLUTION_HOST
     except Exception as e:
         err(f"config.py nao importa: {e}")
         return False, None
@@ -114,35 +114,45 @@ def check_public_tunnel():
         return None
 
 
-def check_megaapi(sessions):
+def check_evolution(sessions):
     if not sessions:
         return
     if not shutil.which("curl"):
         return
+    try:
+        from config import EVOLUTION_HOST
+    except ImportError:
+        return
     for sid, cfg in sessions.items():
         if not cfg.get("token") or "CHANGE" in str(cfg.get("token", "")):
             continue
-        url = f"{cfg.get('instance', '')}"
-        # quick ping via status endpoint
-        full = f"{MEGA_HOST}/rest/instance/{cfg['instance']}"
+        # Evolution v1.x: GET /instance/connectionState/{instance}
+        full = f"{EVOLUTION_HOST}/instance/connectionState/{cfg['instance']}"
         try:
             result = subprocess.run(
-                ["curl", "-s", "-o", os.devnull, "-w", "%{http_code}",
-                 "-H", f"Authorization: Bearer {cfg['token']}",
+                ["curl", "-s",
+                 "-H", f"apikey: {cfg['token']}",
                  full],
                 capture_output=True, text=True, timeout=10
             )
-            code = result.stdout.strip()
-            if code in ("200", "201"):
-                ok(f"megaAPI sessao {sid}: instancia '{cfg['instance']}' alcancavel ({code})")
-            elif code == "401" or code == "403":
-                err(f"megaAPI sessao {sid}: token invalido ({code})")
-            elif code == "404":
-                err(f"megaAPI sessao {sid}: instancia '{cfg['instance']}' nao existe ({code})")
+            try:
+                data = json.loads(result.stdout)
+            except Exception:
+                warn(f"Evolution sessao {sid}: resposta nao-JSON: {result.stdout[:80]!r}")
+                continue
+            state = (data.get("instance") or {}).get("state") or data.get("state")
+            if state == "open":
+                ok(f"Evolution sessao {sid}: instancia '{cfg['instance']}' CONECTADA (state=open)")
+            elif state in ("connecting", "close"):
+                warn(f"Evolution sessao {sid}: instancia '{cfg['instance']}' state={state} (precisa QR scan)")
+            elif data.get("status") in (401, 403):
+                err(f"Evolution sessao {sid}: token invalido ({data.get('status')})")
+            elif data.get("status") == 404:
+                err(f"Evolution sessao {sid}: instancia '{cfg['instance']}' nao existe (404)")
             else:
-                warn(f"megaAPI sessao {sid}: HTTP {code}")
+                warn(f"Evolution sessao {sid}: resposta inesperada: {data}")
         except Exception as e:
-            warn(f"megaAPI sessao {sid}: erro de rede ({e})")
+            warn(f"Evolution sessao {sid}: erro de rede ({e})")
 
 
 def check_runtime_files():
@@ -187,7 +197,7 @@ def check_openai():
 def main():
     print("")
     print("=" * 60)
-    print("WhatsApp Claude Agent - Doctor")
+    print("WhatsApp Claude Agent - Doctor (Evolution edition)")
     print("=" * 60)
     print("")
     print("[ENV]")
@@ -202,8 +212,8 @@ def main():
     check_webhook_port()
     check_public_tunnel()
     print("")
-    print("[MEGAAPI]")
-    check_megaapi(sessions)
+    print("[EVOLUTION]")
+    check_evolution(sessions)
     print("")
     print("[MULTIMODAL]")
     check_openai()

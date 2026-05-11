@@ -3,6 +3,8 @@ Interactive config wizard. Generates config.py from user input.
 Cross-platform (Windows / Linux / macOS).
 
 Run: python -m whatsapp_agent.setup_config
+
+Adapted for Evolution API (https://doc.evolution-api.com).
 """
 import os
 import re
@@ -45,9 +47,10 @@ def write_config(cfg: dict) -> None:
 # To regenerate: delete config.py and run `python -m whatsapp_agent.setup_config`.
 # ============================================================
 
-CMD_TOKEN = {cfg["cmd_token"]!r}
-SIGNATURE = {cfg["signature"]!r}
-MEGA_HOST = {cfg["mega_host"]!r}
+CMD_TOKEN          = {cfg["cmd_token"]!r}
+SIGNATURE          = {cfg["signature"]!r}
+EVOLUTION_HOST     = {cfg["evolution_host"]!r}
+PUBLIC_WEBHOOK_URL = {cfg["public_webhook_url"]!r}
 
 SESSIONS = {{
     "1": {{
@@ -60,11 +63,11 @@ SESSIONS = {{
 
 OPENAI_API_KEY = {cfg["openai_key"]!r}
 
-ALLOWED_PHONE = SESSIONS["1"]["phone"]
-ALLOWED_LID   = SESSIONS["1"]["lid"]
-MEGA_INSTANCE = SESSIONS["1"]["instance"]
-MEGA_TOKEN    = SESSIONS["1"]["token"]
-MEGA_BASE_URL = f"{{MEGA_HOST}}/rest/sendMessage/{{MEGA_INSTANCE}}"
+ALLOWED_PHONE      = SESSIONS["1"]["phone"]
+ALLOWED_LID        = SESSIONS["1"]["lid"]
+EVOLUTION_INSTANCE = SESSIONS["1"]["instance"]
+EVOLUTION_TOKEN    = SESSIONS["1"]["token"]
+EVOLUTION_BASE_URL = f"{{EVOLUTION_HOST}}/message/sendText/{{EVOLUTION_INSTANCE}}"
 '''
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         f.write(template)
@@ -73,7 +76,7 @@ MEGA_BASE_URL = f"{{MEGA_HOST}}/rest/sendMessage/{{MEGA_INSTANCE}}"
 def main() -> int:
     print("")
     print("=" * 60)
-    print("WhatsApp Claude Agent - Interactive Setup")
+    print("WhatsApp Claude Agent - Interactive Setup (Evolution)")
     print("=" * 60)
     print("")
 
@@ -94,17 +97,22 @@ def main() -> int:
     cmd_token = ask("CMD_TOKEN [skip]", default="", required=False)
     print("")
 
-    print("--- WhatsApp HTTP API ---")
-    print("Base URL, instance name, and instance token of your WhatsApp")
-    print("HTTP API.")
+    print("--- Evolution API ---")
+    print("Base URL, instance name, and instance apikey of your Evolution API.")
     while True:
-        host_raw = ask("API base URL")
+        host_raw = ask("Evolution base URL", default="https://evolution.cf98.online")
         host = normalize_host(host_raw)
         if host:
             break
         print("    -> invalid URL: must start with http:// or https://")
-    instance = ask("Instance name")
-    token    = ask("Instance token")
+    instance = ask("Instance name (ex: marcilio-claude)")
+    token    = ask("Instance apikey (per-instance, NOT master)")
+    print("")
+
+    print("--- Public webhook URL ---")
+    print("Public HTTPS URL that Evolution will POST inbound messages to.")
+    print("Tipicamente um subdominio com Cloudflare Tunnel (ex: https://allos.cf98.online).")
+    public_webhook_url = ask("PUBLIC_WEBHOOK_URL", default="https://allos.cf98.online")
     print("")
 
     print("--- WhatsApp number ---")
@@ -125,7 +133,8 @@ def main() -> int:
     cfg = {
         "cmd_token": cmd_token,
         "signature": "*Claude Code*",
-        "mega_host": host,
+        "evolution_host": host,
+        "public_webhook_url": public_webhook_url,
         "instance":  instance,
         "token":     token,
         "phone":     phone,
@@ -138,14 +147,15 @@ def main() -> int:
     print(f"  OK - {CONFIG_PATH} created.")
     print("")
     print("Next steps:")
-    print("  1. Run: python scripts/bootstrap.py")
-    print("     (starts webhook + Quick Tunnel + pushes URL to your")
-    print("      provider - one command)")
-    print("  2. Send a WhatsApp message to yourself")
-    print("  3. Run: python -m whatsapp_agent.discover_lid")
+    print("  1. Start webhook + tunnel:")
+    print("       systemctl --user start allos-webhook allos-tunnel")
+    print("  2. Register webhook URL on Evolution:")
+    print("       python -m whatsapp_agent.update_webhooks")
+    print("  3. Scan QR (Evolution):")
+    print("       curl -H 'apikey: <master>' https://<host>/instance/connect/<instance>")
+    print("  4. Send a WhatsApp message to yourself")
+    print("  5. Run: python -m whatsapp_agent.discover_lid")
     print("     (auto-detects your LID and updates config.py)")
-    print("  4. Open Claude Code and paste in the first message:")
-    print("     'Read CLAUDE_PROMPT.md and run the step 2 prompt. SESSION: 1'")
     print("")
     return 0
 
