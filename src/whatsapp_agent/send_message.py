@@ -16,7 +16,23 @@ import os
 import subprocess
 import sys
 
+from datetime import datetime, timezone
+
 from config import SESSIONS, EVOLUTION_HOST, SIGNATURE
+
+
+AUDIT_LOG = "/var/log/canal/audit.log"
+
+
+def audit(event_type: str, **fields):
+    """Append structured event to audit log (append-only, no failure)."""
+    try:
+        line = {"ts": datetime.now(timezone.utc).isoformat(), "event": event_type, **fields}
+        with open(AUDIT_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(line, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
 
 
 TEXT_ENDPOINT  = "{host}/message/sendText/{instance}"
@@ -75,7 +91,9 @@ def send_text(phone: str, text: str, session: str = "1") -> dict:
         "options": {"delay": 0, "linkPreview": False},
         "textMessage": {"text": full_text},
     })
-    return _curl_json(url, payload, cfg["token"])
+    resp = _curl_json(url, payload, cfg["token"])
+    audit("sent_text", session=session, to=phone, text_len=len(full_text), ok=bool(resp.get("key")))
+    return resp
 
 
 def _detect_mime(path: str) -> str:
@@ -114,7 +132,9 @@ def send_image(phone: str, image_path: str, caption: str = "", session: str = "1
             "media":     b64,
         },
     })
-    return _curl_json(url, payload, cfg["token"])
+    resp = _curl_json(url, payload, cfg["token"])
+    audit("sent_image", session=session, to=phone, file=os.path.basename(image_path), caption_len=len(full_caption), ok=bool(resp.get("key")))
+    return resp
 
 
 def _cli():

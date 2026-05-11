@@ -5,8 +5,24 @@ import os
 
 PORT = 3020
 
+from datetime import datetime, timezone
+
 from config import SESSIONS
 from whatsapp_agent import media_handler
+
+
+AUDIT_LOG = "/var/log/canal/audit.log"
+
+
+def audit(event_type: str, **fields):
+    """Append structured event to audit log (append-only, no failure)."""
+    try:
+        line = {"ts": datetime.now(timezone.utc).isoformat(), "event": event_type, **fields}
+        with open(AUDIT_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(line, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
 
 
 def messages_file(session: str) -> str:
@@ -15,6 +31,10 @@ def messages_file(session: str) -> str:
 
 def allowed_phone(session: str) -> str:
     return SESSIONS.get(session, SESSIONS["1"])["phone"]
+
+
+def allowed_lid(session: str) -> str:
+    return SESSIONS.get(session, SESSIONS["1"]).get("lid", "")
 
 
 class WebhookHandler(BaseHTTPRequestHandler):
@@ -68,6 +88,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             fname = messages_file(session)
             with open(fname, "a", encoding="utf-8") as f:
                 f.write(json.dumps(msg, ensure_ascii=False) + "\n")
+            audit("received", session=session, msg_id=msg.get("id"), frm=msg.get("from"), text=str(msg.get("text",""))[:200], media_type=msg.get("media_type"))
             print(f"MSG|s{session}|{msg['from']}|{msg['name']}|{msg['text']}", flush=True)
 
         self.send_response(200)
@@ -85,9 +106,11 @@ class WebhookHandler(BaseHTTPRequestHandler):
             from_me = key.get("fromMe", False)
             phone = jid.replace("@s.whatsapp.net", "").replace("@lid", "")
             sess_phone = allowed_phone(session)
+            sess_lid   = allowed_lid(session)
 
-            is_self_chat = from_me and phone == sess_phone
-            is_authorized_incoming = not from_me and phone == sess_phone
+            authorized = (phone == sess_phone) or (bool(sess_lid) and phone == sess_lid)
+            is_self_chat = from_me and authorized
+            is_authorized_incoming = not from_me and authorized
 
             if not is_self_chat and not is_authorized_incoming:
                 return None
