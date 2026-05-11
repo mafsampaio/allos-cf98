@@ -114,3 +114,30 @@ def test_send_text_appends_signature_when_missing(fake_config):
     body = json.loads(captured["args"][captured["args"].index("-d") + 1])
     text = body["textMessage"]["text"]
     assert text.count("*Claude Code*") == 1
+
+
+def test_send_text_chunks_long_message(fake_config):
+    """Mensagens >3500 chars devem ser divididas em chunks."""
+    sm = _import()
+    long_text = ("Parágrafo de teste com várias palavras pra simular conteúdo real.\n\n" * 80)
+    assert len(long_text) > 3500
+
+    calls = []
+    def fake_run(args, **kw):
+        calls.append(args)
+        return MagicMock(stdout='{"key":{"id":"x"}}', stderr="", returncode=0)
+
+    with patch("whatsapp_agent.send_message.subprocess.run", side_effect=fake_run):
+        sm.send_text("5511888888888", long_text, "1")
+
+    assert len(calls) > 1, f"Esperava múltiplas chamadas (chunks), veio {len(calls)}"
+    # Última chunk deve ter assinatura
+    last_body = json.loads(calls[-1][calls[-1].index("-d") + 1])
+    assert "*Claude Code*" in last_body["textMessage"]["text"]
+    # Primeira chunk NÃO deve ter assinatura
+    first_body = json.loads(calls[0][calls[0].index("-d") + 1])
+    assert "*Claude Code*" not in first_body["textMessage"]["text"]
+    # Cada chunk <= MAX_CHUNK_CHARS + room for marker
+    for c in calls:
+        body = json.loads(c[c.index("-d") + 1])
+        assert len(body["textMessage"]["text"]) <= 3600, f"chunk overflow: {len(body['textMessage']['text'])}"

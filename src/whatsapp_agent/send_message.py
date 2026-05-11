@@ -81,10 +81,65 @@ def _strip_signature(text: str) -> str:
     return cleaned.rstrip()
 
 
+# Chunking: WhatsApp accepts up to ~4096 chars per message. Cap below that to
+# leave room for SIGNATURE + part marker. Split by paragraph (`\n\n`) when long.
+MAX_CHUNK_CHARS = 3500
+
+
+def _split_paragraphs(text: str, cap: int) -> list[str]:
+    """Split text into chunks <= cap chars, preferring paragraph boundaries.
+
+    Falls back to hard char split if a single paragraph exceeds cap.
+    """
+    paragraphs = text.split("\n\n")
+    chunks: list[str] = []
+    cur = ""
+    for p in paragraphs:
+        if len(p) > cap:
+            # paragraph itself too big: flush cur, then hard-split p
+            if cur:
+                chunks.append(cur)
+                cur = ""
+            for i in range(0, len(p), cap):
+                chunks.append(p[i:i + cap])
+            continue
+        candidate = (cur + "\n\n" + p) if cur else p
+        if len(candidate) <= cap:
+            cur = candidate
+        else:
+            chunks.append(cur)
+            cur = p
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
 def send_text(phone: str, text: str, session: str = "1") -> dict:
     cfg = SESSIONS.get(session, SESSIONS["1"])
     url = TEXT_ENDPOINT.format(host=EVOLUTION_HOST, instance=cfg["instance"])
     body = _strip_signature(text)
+
+    # Chunk if body > MAX_CHUNK_CHARS (signature added per-chunk on last only).
+    if len(body) > MAX_CHUNK_CHARS:
+        import time as _time
+        chunks = _split_paragraphs(body, MAX_CHUNK_CHARS)
+        n = len(chunks)
+        last_resp = {}
+        for i, ch in enumerate(chunks, 1):
+            is_last = (i == n)
+            marker = f"({i}/{n})\n\n" if n > 1 else ""
+            full_text = f"{marker}{ch}\n\n{SIGNATURE}" if is_last else f"{marker}{ch}"
+            payload = json.dumps({
+                "number": phone,
+                "options": {"delay": 0, "linkPreview": False},
+                "textMessage": {"text": full_text},
+            })
+            last_resp = _curl_json(url, payload, cfg["token"])
+            audit("sent_text_chunk", session=session, to=phone, chunk=i, of=n, text_len=len(full_text), ok=bool(last_resp.get("key")))
+            if i < n:
+                _time.sleep(0.6)  # ordering + rate limit
+        return last_resp
+
     full_text = f"{body}\n\n{SIGNATURE}" if body else SIGNATURE
     payload = json.dumps({
         "number": phone,
